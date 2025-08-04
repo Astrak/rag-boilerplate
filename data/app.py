@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 import boto3
 import os
