@@ -1,0 +1,3 @@
+faiss-cpu
+boto3
+numpy
