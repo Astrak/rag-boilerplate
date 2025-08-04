@@ -1,13 +1,25 @@
-import faiss
-import numpy as np
+from fastapi import FastAPI
+from langchain.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+import boto3
+import os
+from pydantic import BaseModel
 
-# Example: 128-dimensional vectors, 1000 vectors
-dimension = 128
-num_vectors = 1000
-vectors = np.random.random((num_vectors, dimension)).astype('float32')
+app = FastAPI()
 
-# Build a FAISS index
-index = faiss.IndexFlatL2(dimension)  # Use IndexIVFFlat for large datasets
-index.add(vectors)
+class SearchRequest(BaseModel):
+    question: str
 
-print(f"Total vectors in index: {index.ntotal}")
+os.makedirs("./vectorstore", exist_ok=True)
+s3 = boto3.client('s3', region_name="eu-north-1")
+s3.download_file("rag-faiss-index-bucket", "vectorstores/index.faiss", "./vectorstore/index.faiss")
+s3.download_file("rag-faiss-index-bucket", "vectorstores/index.pkl", "./vectorstore/index.pkl")
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+vector_store = FAISS.load_local("./vectorstore", embeddings, allow_dangerous_deserialization=True)
+
+@app.post("/search")
+def search(request: SearchRequest):
+    query = request.question
+    docs = vector_store.similarity_search(query)
+    return {"results": [doc.page_content for doc in docs]}

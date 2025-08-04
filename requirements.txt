@@ -1,3 +1,7 @@
 faiss-cpu
 boto3
-numpy
+fastapi
+uvicorn
+openai
+langchain
+langchain-openai
