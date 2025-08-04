@@ -5,6 +5,12 @@ import boto3
 import os
 from pydantic import BaseModel
 
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    raise EnvironmentError("OPENAI_API_KEY not found in .env")
+
+os.environ["OPENAI_API_KEY"] = openai_api_key
+
 app = FastAPI()
 
 class SearchRequest(BaseModel):
