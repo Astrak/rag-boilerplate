@@ -72,6 +72,6 @@ class SearchRequest(BaseModel):
 @app.post("/search")
 def search(request: SearchRequest):
     print('search request received: ' + request.question)
-    result = graph.invoke({"question": "request.question"}) # pyright: ignore[reportArgumentType]
+    result = graph.invoke({"question": request.question})  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
     return {"results": result['answer']}
