@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
-    raise EnvironmentError("OPENAI_API_KEY not found in .env")
+    raise EnvironmentError("OPENAI_API_KEY not found")
 
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
@@ -26,6 +26,8 @@ vector_store = FAISS.load_local("./vectorstore", embeddings, allow_dangerous_des
 
 @app.post("/search")
 def search(request: SearchRequest):
+    print('search request received: {request.question}')
     query = request.question
     docs = vector_store.similarity_search(query)
+    print('similarity search finished')
     return {"results": [doc.page_content for doc in docs]}
