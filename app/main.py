@@ -82,7 +82,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Respond to any text message
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(graph.invoke({"question": update.message.text})['answer']) # type: ignore
+    print("Handled")
+    result = graph.invoke({"question": update.message.text}) # type: ignore
+    print(result)
+    await update.message.reply_text(result.answer) # type: ignore
 
 telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 if not telegram_bot_token:
