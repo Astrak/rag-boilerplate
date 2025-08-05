@@ -104,10 +104,16 @@ async def main():
 import asyncio
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        # Already inside an event loop (e.g., Jupyter, certain hosting envs)
+        print("Detected existing event loop, running as task")
         asyncio.ensure_future(main())
     else:
-        loop.run_until_complete(main())
+        # No running loop, safe to start a new one
+        asyncio.run(main())
 
     
