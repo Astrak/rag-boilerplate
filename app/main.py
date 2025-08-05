@@ -32,12 +32,6 @@ if not x_access_token_secret:
     raise EnvironmentError("X_ACCESS_TOKEN_SECRET not found")
 os.environ["X_ACCESS_TOKEN_SECRET"] = x_access_token_secret
 
-auth = tweepy.OAuth1UserHandler(x_api_key,x_api_key_secret,x_access_token,x_access_token_secret)
-
-x_api = tweepy.API(auth)
-
-x_handle = "gweltazbot"
-
 prompt = PromptTemplate.from_template("You are an assistant for question-answering tasks. " +
 "Use the following pieces of retrieved context to answer the question." + 
 "If you don't know the answer, just say that you don't know. " +
@@ -101,14 +95,22 @@ def search(request: SearchRequest):
     print('similarity search finished')
     return {"results": result['answer']}
 
+##### X bot
+
+auth = tweepy.OAuth1UserHandler(x_api_key,x_api_key_secret,x_access_token,x_access_token_secret)
+
+x_api = tweepy.API(auth)
+
+x_handle = "gweltazbot"
+
+x_caller = "nevedbrecilien"
+
 last_seen_id = None
 
 def check_mentions():
     global last_seen_id
-    mentions = x_api.mentions_timeline(since_id=last_seen_id, tweet_mode='extended')
-    for mention in reversed(mentions):
-        print(mention)
+    tweets = x_api.user_timeline(user_id=x_caller, since_id=last_seen_id, tweet_mode='extended', count=10)
+    for tweet in reversed(tweets):
+        print(tweet)
 
-while True:
-    check_mentions()
-    time.sleep(15)  # Check every 15 seconds
+check_mentions()
