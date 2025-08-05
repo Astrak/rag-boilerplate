@@ -9,6 +9,34 @@ from langchain_core.documents import Document
 from typing_extensions import List, TypedDict
 from langchain.chat_models import init_chat_model
 from langgraph.graph import START, StateGraph
+import tweepy
+import time
+
+x_api_key = os.getenv("X_API_KEY")
+if not x_api_key:
+    raise EnvironmentError("X_API_KEY not found")
+os.environ["X_API_KEY"] = x_api_key
+
+x_api_key_secret = os.getenv("X_API_KEY_SECRET")
+if not x_api_key_secret:
+    raise EnvironmentError("X_API_KEY_SECRET not found")
+os.environ["X_API_KEY_SECRET"] = x_api_key_secret
+
+x_access_token = os.getenv("X_ACCESS_TOKEN")
+if not x_access_token:
+    raise EnvironmentError("X_ACCESS_TOKEN not found")
+os.environ["X_ACCESS_TOKEN"] = x_access_token
+
+x_access_token_secret = os.getenv("X_ACCESS_TOKEN_SECRET")
+if not x_access_token_secret:
+    raise EnvironmentError("X_ACCESS_TOKEN_SECRET not found")
+os.environ["X_ACCESS_TOKEN_SECRET"] = x_access_token_secret
+
+auth = tweepy.OAuth1UserHandler(x_api_key,x_api_key_secret,x_access_token,x_access_token_secret)
+
+x_api = tweepy.API(auth)
+
+x_handle = "gweltazbot"
 
 prompt = PromptTemplate.from_template("You are an assistant for question-answering tasks. " +
 "Use the following pieces of retrieved context to answer the question." + 
@@ -21,19 +49,16 @@ Answer:""")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
     raise EnvironmentError("OPENAI_API_KEY not found")
-
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
 langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
 if not langsmith_api_key:
     raise EnvironmentError("LANGSMITH_API_KEY not found")
-
 os.environ["LANGSMITH_API_KEY"] = langsmith_api_key
 
 google_api_key = os.getenv("GOOGLE_API_KEY")
 if not google_api_key:
     raise EnvironmentError("GOOGLE_API_KEY not found")
-
 os.environ["GOOGLE_API_KEY"] = google_api_key
 
 os.makedirs("./vectorstore", exist_ok=True)
@@ -75,3 +100,15 @@ def search(request: SearchRequest):
     result = graph.invoke({"question": request.question})  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
     return {"results": result['answer']}
+
+last_seen_id = None
+
+def check_mentions():
+    global last_seen_id
+    mentions = x_api.mentions_timeline(since_id=last_seen_id, tweet_mode='extended')
+    for mention in reversed(mentions):
+        print(mention)
+
+while True:
+    check_mentions()
+    time.sleep(15)  # Check every 15 seconds
