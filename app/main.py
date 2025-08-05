@@ -63,17 +63,17 @@ graph_builder = StateGraph(State).add_sequence([retrieve_from_store1, generate])
 graph_builder.add_edge(START, "retrieve_from_store1")
 graph = graph_builder.compile()
 
-app = FastAPI()
+# app = FastAPI()
 
-class SearchRequest(BaseModel):
-    question: str
+# class SearchRequest(BaseModel):
+#     question: str
 
-@app.post("/search")
-def search(request: SearchRequest):
-    print('search request received: ' + request.question)
-    result = graph.invoke({"question": request.question})  # pyright: ignore[reportArgumentType]
-    print('similarity search finished')
-    return {"results": result['answer']}
+# @app.post("/search")
+# def search(request: SearchRequest):
+#     print('search request received: ' + request.question)
+#     result = graph.invoke({"question": request.question})  # pyright: ignore[reportArgumentType]
+#     print('similarity search finished')
+#     return {"results": result['answer']}
 
 ##### Telegram bot
 
