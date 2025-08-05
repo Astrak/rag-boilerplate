@@ -9,28 +9,8 @@ from langchain_core.documents import Document
 from typing_extensions import List, TypedDict
 from langchain.chat_models import init_chat_model
 from langgraph.graph import START, StateGraph
-import tweepy
-import time
-
-x_api_key = os.getenv("X_API_KEY")
-if not x_api_key:
-    raise EnvironmentError("X_API_KEY not found")
-os.environ["X_API_KEY"] = x_api_key
-
-x_api_key_secret = os.getenv("X_API_KEY_SECRET")
-if not x_api_key_secret:
-    raise EnvironmentError("X_API_KEY_SECRET not found")
-os.environ["X_API_KEY_SECRET"] = x_api_key_secret
-
-x_access_token = os.getenv("X_ACCESS_TOKEN")
-if not x_access_token:
-    raise EnvironmentError("X_ACCESS_TOKEN not found")
-os.environ["X_ACCESS_TOKEN"] = x_access_token
-
-x_access_token_secret = os.getenv("X_ACCESS_TOKEN_SECRET")
-if not x_access_token_secret:
-    raise EnvironmentError("X_ACCESS_TOKEN_SECRET not found")
-os.environ["X_ACCESS_TOKEN_SECRET"] = x_access_token_secret
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
 prompt = PromptTemplate.from_template("You are an assistant for question-answering tasks. " +
 "Use the following pieces of retrieved context to answer the question." + 
@@ -95,22 +75,23 @@ def search(request: SearchRequest):
     print('similarity search finished')
     return {"results": result['answer']}
 
-##### X bot
+##### Telegram bot
 
-auth = tweepy.OAuth1UserHandler(x_api_key,x_api_key_secret,x_access_token,x_access_token_secret)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
 
-x_api = tweepy.API(auth)
+# Respond to any text message
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(graph.invoke({"question": update.message.text})['answer']) # type: ignore
 
-x_handle = "gweltazbot"
+telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+if not telegram_bot_token:
+    raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
+os.environ["TELEGRAM_BOT_TOKEN"] = telegram_bot_token
 
-x_caller = "nevedbrecilien"
+app = ApplicationBuilder().token(telegram_bot_token).build()
 
-last_seen_id = None
-
-def check_mentions():
-    global last_seen_id
-    tweets = x_api.user_timeline(user_id=x_caller, since_id=last_seen_id, tweet_mode='extended', count=10)
-    for tweet in reversed(tweets):
-        print(tweet)
-
-check_mentions()
+# Command handlers
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+app.run_polling()
