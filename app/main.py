@@ -104,6 +104,10 @@ async def main():
 import asyncio
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        asyncio.ensure_future(main())
+    else:
+        loop.run_until_complete(main())
 
     
