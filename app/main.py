@@ -77,6 +77,10 @@ def search(request: SearchRequest):
 
 ##### Telegram bot
 
+telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+if not telegram_bot_token:
+    raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
 
@@ -87,16 +91,15 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(result)
     await update.message.reply_text(result.answer) # type: ignore
 
-telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-if not telegram_bot_token:
-    raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
-os.environ["TELEGRAM_BOT_TOKEN"] = telegram_bot_token
-
-if __name__ == '__main__':
-
-    app = ApplicationBuilder().token(telegram_bot_token).build()
-
-    # Command handlers
+async def main():
+    app = ApplicationBuilder().token(telegram_bot_token).build() # type: ignore
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    print('Bot running')
     app.run_polling()
+
+if __name__ == '__main__':
+    import asyncio
+    asyncio.run(main())
+
+    
