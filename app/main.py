@@ -95,8 +95,11 @@ async def main():
     app = ApplicationBuilder().token(telegram_bot_token).build() # type: ignore
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-    print('Bot running')
-    await app.run_polling() # type: ignore
+    print("Bot is starting polling now...")
+    try:
+        await app.run_polling()  # type: ignore
+    except Exception as e:
+        print(f"Polling failed with exception: {e}")
 
 import asyncio
 
