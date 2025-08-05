@@ -96,9 +96,11 @@ async def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     print('Bot running')
-    app.run_polling()
+    await app.run_polling() # type: ignore
 
 import asyncio
-asyncio.run(main())
+
+if __name__ == '__main__':
+    asyncio.run(main())
 
     
