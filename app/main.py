@@ -89,7 +89,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Handled")
     result = graph.invoke({"question": update.message.text}) # type: ignore
     print(result)
-    await update.message.reply_text(result.answer) # type: ignore
+    await update.message.reply_text("HEllo") # type: ignore
 
 def main():
     app = ApplicationBuilder().token(telegram_bot_token).build() # type: ignore
