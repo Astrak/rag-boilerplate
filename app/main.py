@@ -89,9 +89,11 @@ if not telegram_bot_token:
     raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
 os.environ["TELEGRAM_BOT_TOKEN"] = telegram_bot_token
 
-app = ApplicationBuilder().token(telegram_bot_token).build()
+if __name__ == '__main__':
 
-# Command handlers
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-app.run_polling()
+    app = ApplicationBuilder().token(telegram_bot_token).build()
+
+    # Command handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    app.run_polling()
