@@ -91,29 +91,14 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(result)
     await update.message.reply_text(result.answer) # type: ignore
 
-async def main():
+def main():
     app = ApplicationBuilder().token(telegram_bot_token).build() # type: ignore
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     print("Bot is starting polling now...")
-    try:
-        await app.run_polling()  # type: ignore
-    except Exception as e:
-        print(f"Polling failed with exception: {e}")
-
-import asyncio
+    app.run_polling()  # type: ignore
 
 if __name__ == '__main__':
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    if loop and loop.is_running():
-        # Already inside an event loop (e.g., Jupyter, certain hosting envs)
-        print("Detected existing event loop, running as task")
-        asyncio.ensure_future(main())
-    else:
-        # No running loop, safe to start a new one
-        asyncio.run(main())
+    main()
 
     
