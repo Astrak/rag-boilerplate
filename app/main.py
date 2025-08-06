@@ -1,3 +1,4 @@
+import os
 from prompt import get_prompt
 from env import fill_env
 from graph import Graph
@@ -45,7 +46,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     ArticleScraper()
-    app = ApplicationBuilder().token(telegram_bot_token).build() # type: ignore
+    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    app = ApplicationBuilder().token(bot_token).build() # type: ignore
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     print("Bot is starting polling now...")

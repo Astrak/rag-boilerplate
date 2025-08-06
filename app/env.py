@@ -19,3 +19,4 @@ def fill_env():
     telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not telegram_bot_token:
         raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
+    os.environ["TELEGRAM_BOT_TOKEN"] = google_api_key
