@@ -2,10 +2,6 @@ import os
 from prompt import get_prompt
 from env import fill_env
 from graph import Graph
-from fastapi import FastAPI
-from pydantic import BaseModel
-from langchain_core.documents import Document
-from typing_extensions import List, TypedDict
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from scraper import ArticleScraper
