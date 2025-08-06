@@ -14,9 +14,9 @@ class Graph:
     def __init__(self, vector_store: FAISS, prompt: PromptTemplate): 
         self.vector_store = vector_store;
         self.prompt = prompt
-        self.graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
-        self.graph.add_edge(START, "retrieve")
-        self.graph.compile()
+        graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
+        graph.add_edge(START, "retrieve")
+        self.graph = graph.compile()
 
     def retrieve(self, state: State):
         retrieved_docs = self.vector_store.similarity_search(state["question"])
@@ -30,4 +30,4 @@ class Graph:
         return {"answer": response.content}
     
     def invoke(self, text: dict):
-        return self.graph.invoke({"question": text})
+        return self.graph.invoke({"question": text}) # type: ignore
