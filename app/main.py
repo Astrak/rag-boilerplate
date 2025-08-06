@@ -1,67 +1,22 @@
+from prompt import get_prompt
+from env import fill_env
+from graph import Graph
 from fastapi import FastAPI
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-import boto3
-import os
 from pydantic import BaseModel
-from langchain_core.prompts import PromptTemplate
 from langchain_core.documents import Document
 from typing_extensions import List, TypedDict
-from langchain.chat_models import init_chat_model
-from langgraph.graph import START, StateGraph
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from scraper import ArticleScraper
+from vector_store import get_store
 
-prompt = PromptTemplate.from_template("You are an assistant for question-answering tasks. " +
-"Use the following pieces of retrieved context to answer the question." + 
-"If you don't know the answer, just say that you don't know. " +
-"Use three sentences maximum and keep the answer concise. " +
-"""Question: {question} 
-Context: {context} 
-Answer:""")
+fill_env()
 
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    raise EnvironmentError("OPENAI_API_KEY not found")
-os.environ["OPENAI_API_KEY"] = openai_api_key
+prompt = get_prompt()
 
-langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
-if not langsmith_api_key:
-    raise EnvironmentError("LANGSMITH_API_KEY not found")
-os.environ["LANGSMITH_API_KEY"] = langsmith_api_key
+vector_store = get_store()
 
-google_api_key = os.getenv("GOOGLE_API_KEY")
-if not google_api_key:
-    raise EnvironmentError("GOOGLE_API_KEY not found")
-os.environ["GOOGLE_API_KEY"] = google_api_key
-
-os.makedirs("./vectorstore", exist_ok=True)
-s3 = boto3.client('s3', region_name="eu-north-1")
-s3.download_file("rag-faiss-index-bucket", "vectorstores/index.faiss", "./vectorstore/index.faiss")
-s3.download_file("rag-faiss-index-bucket", "vectorstores/index.pkl", "./vectorstore/index.pkl")
-
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-vector_store = FAISS.load_local("./vectorstore", embeddings, allow_dangerous_deserialization=True)
-
-class State(TypedDict):
-    question: str
-    context: List[Document]
-    answer: str
-
-def retrieve_from_store1(state: State):
-    retrieved_docs = vector_store.similarity_search(state["question"])
-    return {"context": retrieved_docs}
-
-def generate(state: State):
-    docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
-    llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
-    response = llm.invoke(messages)
-    return {"answer": response.content}
-
-graph_builder = StateGraph(State).add_sequence([retrieve_from_store1, generate])
-graph_builder.add_edge(START, "retrieve_from_store1")
-graph = graph_builder.compile()
+graph = Graph(vector_store, prompt)
 
 # app = FastAPI()
 
@@ -77,22 +32,19 @@ graph = graph_builder.compile()
 
 ##### Telegram bot
 
-telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-if not telegram_bot_token:
-    raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
 
 # Respond to any text message
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Handled")
-    result = graph.invoke({"question": update.message.text}) # type: ignore
+    result = graph.invoke({"question": update.message.text})
     answer = result['answer']
     print(answer)
     await update.message.reply_text(answer) # type: ignore
 
 def main():
+    ArticleScraper()
     app = ApplicationBuilder().token(telegram_bot_token).build() # type: ignore
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
