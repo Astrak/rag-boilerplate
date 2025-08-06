@@ -29,5 +29,5 @@ class Graph:
         response = llm.invoke(messages)
         return {"answer": response.content}
     
-    def invoke(self, text: dict):
+    def invoke(self, text):
         return self.graph.invoke({"question": text}) # type: ignore

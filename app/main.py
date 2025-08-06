@@ -35,7 +35,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Respond to any text message
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Handled")
-    result = graph.invoke({"question": update.message.text})
+    result = graph.invoke(update.message.text)
     answer = result['answer']
     print(answer)
     await update.message.reply_text(answer) # type: ignore
