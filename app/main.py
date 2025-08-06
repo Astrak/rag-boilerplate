@@ -40,16 +40,12 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(answer)
     await update.message.reply_text(answer) # type: ignore
 
-def main():
-    ArticleScraper()
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    app = ApplicationBuilder().token(bot_token).build() # type: ignore
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-    print("Bot is starting polling now...")
-    app.run_polling()  # type: ignore
-
-if __name__ == '__main__':
-    main()
+ArticleScraper()
+bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+app = ApplicationBuilder().token(bot_token).build() # type: ignore
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+print("Bot is starting polling now...")
+app.run_polling()  # type: ignore
 
     
