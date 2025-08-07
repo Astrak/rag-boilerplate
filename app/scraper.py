@@ -86,7 +86,7 @@ class ArticleScraper:
                         href = cast(str, link.get('href'))
                         if href and self._is_same_domain(href) and not href in discovered_urls: 
                             discovered_urls.add(href)
-                            print(f"{len(discovered_urls)} discovered urls")
+                            print(f"{len(discovered_urls)} urls, added: {href}")
                 for link in soup.find_all('a', href=True):
                     href = cast(str, cast(Tag, link).get('href'))
                     if self._is_same_domain(href):
