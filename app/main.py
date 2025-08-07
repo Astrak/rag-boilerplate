@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from scraper import ArticleScraper
 from vector_store import get_store
+import csv
 
 fill_env()
 
@@ -49,6 +50,10 @@ EXCLUDED_PATHS=[
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
 article_urls = scraper.discover_urls()
 new_urls = [url for url in article_urls if url not in scraper.scraped_urls]
+with open("./url_list.csv", 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    for url in new_urls:
+        writer.writerow([url])
 print(f"Found {len(new_urls)} new URLs to scrape")
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
