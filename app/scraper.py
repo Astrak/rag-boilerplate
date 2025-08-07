@@ -83,8 +83,8 @@ class ArticleScraper:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 for selector in ['article div a[href]']:
                     for link in soup.select(selector):
-                        href = link.get('href')
-                        if href and self._is_same_domain(href):  # pyright: ignore[reportArgumentType]
+                        href = cast(str, link.get('href'))
+                        if href and self._is_same_domain(href) and not href in discovered_urls: 
                             discovered_urls.add(href)
                             print(f"{len(discovered_urls)} discovered urls")
                 for link in soup.find_all('a', href=True):
