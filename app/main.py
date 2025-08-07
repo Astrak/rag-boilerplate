@@ -18,6 +18,7 @@ vector_store = get_store()
 graph = Graph(vector_store, prompt)
 
 s3 = boto3.client('s3', region_name="eu-north-1")
+os.makedirs("./polemia-urls/", exist_ok=True)
 s3.download_file("rag-faiss-index-bucket", "polemia-urls/url-list.csv", "./polemia-urls/url-list.csv")
 lines = []
 with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
