@@ -152,7 +152,6 @@ class ArticleScraper:
                 'scraped_at': time.time()
             }
             print(f"Successfully scraped: {url} ({article_data['word_count']} words)")
-            print(article_data)
             return article_data
         except Exception as e:
             print(f"Error scraping {url}: {e}")
