@@ -7,6 +7,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Messa
 from scraper import ArticleScraper
 from vector_store import get_store
 import csv
+import boto3
 
 fill_env()
 
@@ -15,6 +16,19 @@ prompt = get_prompt()
 vector_store = get_store()
 
 graph = Graph(vector_store, prompt)
+
+s3 = boto3.client('s3', region_name="eu-north-1")
+s3.download_file("rag-faiss-index-bucket", "polemia-urls/url-list.csv", "./polemia-urls/url-list.csv")
+lines = []
+with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
+    csv_reader = csv.reader(file)
+    for row in csv_reader:
+        lines.append(row)
+EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
+scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
+scraper.scrape_articles(lines)
+store = scraper.create_vector_store()
+
 
 # app = FastAPI()
 
@@ -33,7 +47,6 @@ graph = Graph(vector_store, prompt)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
 
-# Respond to any text message
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Handled")
     # bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
@@ -41,21 +54,6 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = result['answer']
     print(answer)
     await update.message.reply_text(answer) # type: ignore
-
-EXCLUDED_PATHS=[
-    "/mot-clef/",
-    r".*\.(pdf|jpg|png|gif|css|js)$"  # Regex pattern for file extensions
-]
-
-scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
-article_urls = scraper.discover_urls()
-with open("./url_list.csv", 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    for url in article_urls['discovered']:
-        writer.writerow([url])
-print(f"Found {len(article_urls['discovered']) + len(article_urls['failed'])} new URLs to scrape")
-print('Failed on the following urls:')
-print(article_urls['failed'])
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(bot_token).build() # type: ignore

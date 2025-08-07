@@ -2,18 +2,19 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Set, Dict, Optional
 import time
 from typing import cast
+import re
 
 delay = 0.05 # delay to not Ddos the server
 
 class ArticleScraper:
-    def __init__(self, base_url, excluded_paths):
+    def __init__(self, base_url, excluded_paths = []):
         print('Initialize scraper')
         self.base_url = base_url
         self.excluded_paths = excluded_paths
@@ -29,7 +30,6 @@ class ArticleScraper:
         parsed_url = urlparse(url)
         path = parsed_url.path
         for excluded_path in self.excluded_paths:
-            # Support both exact matches and regex patterns
             if excluded_path.startswith('/') and path.startswith(excluded_path):
                 return True
             elif re.search(excluded_path, path):
@@ -118,8 +118,7 @@ class ArticleScraper:
                     self.failed_urls.add(url)
                 time.sleep(delay)
                 completed = len(self.scraped_urls) + len(self.failed_urls)
-                if completed % 50 == 0:
-                    print(f"Progress: {completed}/{len(urls)} articles processed")
+                print(f"Progress: {completed}/{len(urls)} articles processed")
     
     def scrape_article(self, url: str) -> Optional[Dict]:
         try:
