@@ -35,12 +35,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Respond to any text message
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Handled")
+    # bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
     result = graph.invoke(update.message.text)
     answer = result['answer']
     print(answer)
     await update.message.reply_text(answer) # type: ignore
 
-ArticleScraper()
+EXCLUDED_PATHS=[
+    "/mot-clef/",
+    r".*\.(pdf|jpg|png|gif|css|js)$"  # Regex pattern for file extensions
+]
+
+scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
+article_urls = scraper.discover_urls()
+new_urls = [url for url in article_urls if url not in scraper.scraped_urls]
+print(f"Found {len(new_urls)} new URLs to scrape")
+
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(bot_token).build() # type: ignore
 app.add_handler(CommandHandler("start", start))
