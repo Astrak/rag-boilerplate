@@ -140,7 +140,7 @@ class ArticleScraper:
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
             if meta_tag:
-                meta_description = meta_tag.get('content', '')
+                meta_description = cast(Tag, meta_tag).get('content', '')
             article_data = {
                 'url': url,
                 'title': title,
