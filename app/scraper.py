@@ -126,47 +126,33 @@ class ArticleScraper:
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             title = cast(Tag, soup.select_one('h1.entry-title')).get_text(strip=True)
-            content_selectors = [
-                'article', 
-                '.article-content', 
-                '.post-content', 
-                '.content',
-                'main',
-                '.entry-content'
-            ]
-
+            content_elem = soup.select_one('#contenu')
             content = None
-            for selector in content_selectors:
-                content_elem = soup.select_one(selector)
-                if content_elem:
-                    # Remove script and style elements
-                    for script in content_elem(["script", "style", "nav", "footer"]):
-                        script.decompose()
-                    content = content_elem.get_text(separator='\n', strip=True)
-                    break
-            
+            if content_elem:
+                for script in content_elem(["script", "style", "nav", "footer", "iframe"]):
+                    script.decompose()
+                content = content_elem.get_text(separator='\n', strip=True)
             if not content:
                 print(f"No content found for {url}")
                 return None
-            
-            # Get metadata
+            date = cast(Tag, soup.select_one('.et_pb_title_container .published')).get_text(strip=True)
+            author = cast(Tag, soup.select_one('.et_pb_title_container .author')).get_text(strip=True)
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
             if meta_tag:
                 meta_description = meta_tag.get('content', '')
-            
             article_data = {
                 'url': url,
-                'title': title or 'Untitled',
+                'title': title,
                 'content': content,
+                'date': date,
+                'author': author,
                 'meta_description': meta_description,
                 'word_count': len(content.split()),
                 'scraped_at': time.time()
             }
-            
             print(f"Successfully scraped: {url} ({article_data['word_count']} words)")
             return article_data
-            
         except Exception as e:
             print(f"Error scraping {url}: {e}")
             return None
