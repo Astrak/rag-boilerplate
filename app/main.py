@@ -49,12 +49,13 @@ EXCLUDED_PATHS=[
 
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
 article_urls = scraper.discover_urls()
-new_urls = [url for url in article_urls if url not in scraper.scraped_urls]
 with open("./url_list.csv", 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
-    for url in new_urls:
+    for url in article_urls['discovered']:
         writer.writerow([url])
-print(f"Found {len(new_urls)} new URLs to scrape")
+print(f"Found {len(article_urls['discovered']) + len(article_urls['failed'])} new URLs to scrape")
+print('Failed on the following urls:')
+print(article_urls['failed'])
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(bot_token).build() # type: ignore

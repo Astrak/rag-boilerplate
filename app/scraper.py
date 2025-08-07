@@ -36,10 +36,6 @@ class ArticleScraper:
                 return True
         return False
 
-    def discover_urls(self):
-        urls = self._crawl_for_articles()
-        return [url for url in urls if not self.is_url_excluded(url)]
-
     def create_vector_store(self) -> FAISS:
         print("Creating vector store...")
         documents = []
@@ -68,9 +64,10 @@ class ArticleScraper:
         print(f"Vector store saved to ./vectorstore")
         return vectorstore
 
-    def _crawl_for_articles(self) -> List[str]:
+    def discover_urls(self) -> dict["str", List[str]]:
         discovered_urls = set()
         to_visit = {self.base_url}
+        to_revisit = set()
         visited = set()
         while to_visit:
             current_url = to_visit.pop()
@@ -94,7 +91,11 @@ class ArticleScraper:
                 time.sleep(delay) 
             except Exception as e:
                 print(f"Error crawling {current_url}: {e}")
-        return list(discovered_urls)
+                to_revisit.add(current_url)
+        return {
+            "discovered": list(url for url in discovered_urls if not self.is_url_excluded(url)), 
+            "failed": list(to_revisit)
+        }
     
     def _is_same_domain(self, url: str) -> bool:
         return urlparse(url).netloc == urlparse(self.base_url).netloc
