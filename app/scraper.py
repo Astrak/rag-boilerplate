@@ -44,7 +44,7 @@ class ArticleScraper:
     def create_vector_store(self) -> FAISS:
         print("Creating vector store...")
         """Split in documents to match vectorization limit"""
-        documents = []
+        documents: List[Document] = []
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2600,
             chunk_overlap=500,
@@ -70,40 +70,39 @@ class ArticleScraper:
 
         """Group all documents in subbatches inferior to OpenAI's token limit"""
         encoding = tiktoken.encoding_for_model(MODEL)
-        batches = []
+        batches: List[List[Document]] = []
         current_batch = []
         current_token_count = 0
-        for text in documents:
-            text_tokens = len(encoding.encode(text))
+        for doc in documents:
+            text_tokens = len(encoding.encode(doc.page_content))
             if current_token_count + text_tokens > MAX_TOKENS_PER_REQUEST:
                 batches.append(current_batch)
-                current_batch = [text]
+                current_batch = [doc]
                 current_token_count = text_tokens
             else:
-                current_batch.append(text)
+                current_batch.append(doc)
                 current_token_count += text_tokens
         if current_batch:
             batches.append(current_batch)
         
         """Create embeddings for the documents batches"""
-        embeddings = []
+        embeddings_model = OpenAIEmbeddings(model=MODEL)
+        all_embeddings = []
+        all_docs: List[Document] = []
         for i, batch in enumerate(batches):
             print(f"Processing batch {i+1}/{len(batches)}")
             try:
-                response = openai.embeddings.create(
-                    model=MODEL,
-                    input=batch
-                )
-                batch_embeddings = [data.embedding for data in response.data]
-                embeddings.extend(batch_embeddings)
+                batch_texts = [doc.page_content for doc in batch]
+                batch_embeddings = embeddings_model.embed_documents(batch_texts)
+                all_embeddings.extend(batch_embeddings)
+                all_docs.extend(batch)
                 time.sleep(0.1)
             except Exception as e:
                 print(f"Error processing batch {i+1}: {e}")
-        embeddings_model = OpenAIEmbeddings(model=MODEL)
-        embeddings_array = numpy.array(embeddings, dtype=numpy.float32)
         vector_store = FAISS.from_embeddings(
-            text_embeddings=list(zip(documents, embeddings_array)),
-            embedding=embeddings_model
+            embedding=embeddings_model,
+            text_embeddings=[(doc.page_content, embedding) for doc, embedding in zip(all_docs, all_embeddings)],
+            metadatas=[doc.metadata for doc in all_docs]  # Preserve metadata
         )
         vector_store.save_local('./vectorstore')
         print(f"Vector store saved to ./vectorstore")
