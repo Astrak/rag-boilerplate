@@ -14,14 +14,14 @@ fill_env()
 s3 = boto3.client('s3', region_name="eu-north-1")
 os.makedirs("./polemia-urls/", exist_ok=True)
 s3.download_file("rag-faiss-index-bucket", "polemia-urls/url-list.csv", "./polemia-urls/url-list.csv")
-lines = []
+lines: list[str] = []
 with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
     csv_reader = csv.reader(file)
     for row in csv_reader:
         lines.append(row[0])
 EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
-articles = scraper.scrape_articles(lines[:200])
+articles = scraper.scrape_articles(lines[:1000])
 store = scraper.create_vector_store()
 
 

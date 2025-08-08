@@ -6,16 +6,13 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup, Tag
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Set, Dict, Optional
 import time
-from typing import cast
+from typing import cast, Optional
 import re
 import tiktoken
-import openai
-import numpy
 
 DELAY = 0.05 # delay to not Ddos the server
-MAX_TOKENS_PER_REQUEST = 300000
+MAX_TOKENS_PER_REQUEST = 260000
 MODEL = "text-embedding-3-large"
 
 class ArticleScraper:
@@ -27,9 +24,9 @@ class ArticleScraper:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (compatible; ArticleScraper/1.0)'
         })
-        self.scraped_urls: Set[str] = set()
-        self.failed_urls: Set[str] = set()
-        self.articles: List[Dict] = []
+        self.scraped_urls: set[str] = set()
+        self.failed_urls: set[str] = set()
+        self.articles: list[dict] = []
     
     def is_url_excluded(self, url: str) -> bool:
         parsed_url = urlparse(url)
@@ -44,7 +41,7 @@ class ArticleScraper:
     def create_vector_store(self) -> FAISS:
         print("Creating vector store...")
         """Split in documents to match vectorization limit"""
-        documents: List[Document] = []
+        documents: list[Document] = []
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2600,
             chunk_overlap=500,
@@ -70,7 +67,7 @@ class ArticleScraper:
 
         """Group all documents in subbatches inferior to OpenAI's token limit"""
         encoding = tiktoken.encoding_for_model(MODEL)
-        batches: List[List[Document]] = []
+        batches: list[list[Document]] = []
         current_batch = []
         current_token_count = 0
         for doc in documents:
@@ -88,7 +85,7 @@ class ArticleScraper:
         """Create embeddings for the documents batches"""
         embeddings_model = OpenAIEmbeddings(model=MODEL)
         all_embeddings = []
-        all_docs: List[Document] = []
+        all_docs: list[Document] = []
         for i, batch in enumerate(batches):
             print(f"Processing batch {i+1}/{len(batches)}")
             try:
@@ -108,7 +105,7 @@ class ArticleScraper:
         print(f"Vector store saved to ./vectorstore")
         return vector_store
 
-    def discover_urls(self) -> dict["str", List[str]]:
+    def discover_urls(self) -> dict["str", list[str]]:
         discovered_urls = set()
         to_visit = {self.base_url}
         to_revisit = set()
@@ -144,7 +141,7 @@ class ArticleScraper:
     def _is_same_domain(self, url: str) -> bool:
         return urlparse(url).netloc == urlparse(self.base_url).netloc
 
-    def scrape_articles(self, urls: List[str]) -> List[Dict]:
+    def scrape_articles(self, urls: list[str]) -> list[dict]:
         print(f"Starting to scrape {len(urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_url = {executor.submit(self.scrape_article, url): url for url in urls}
@@ -165,7 +162,7 @@ class ArticleScraper:
                 print(f"Progress: {completed}/{len(urls)} articles processed")
         return self.articles
     
-    def scrape_article(self, url: str) -> Optional[Dict]:
+    def scrape_article(self, url: str) -> Optional[dict]:
         try:
             response = self.session.get(url, timeout=15)
             response.raise_for_status()
