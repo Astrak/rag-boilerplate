@@ -40,8 +40,8 @@ class ArticleScraper:
         print("Creating vector store...")
         documents = []
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=3000,
-            chunk_overlap=200,
+            chunk_size=2600,
+            chunk_overlap=500,
         )
         for article in self.articles:
             text_chunks = text_splitter.split_text(article['content'])
@@ -51,6 +51,8 @@ class ArticleScraper:
                     metadata={
                         'source': article['url'],
                         'title': article['title'],
+                        'date': article['date'],
+                        'author': article['author'],
                         'chunk_id': i,
                         'total_chunks': len(text_chunks),
                         'word_count': article['word_count'],
@@ -59,6 +61,7 @@ class ArticleScraper:
                 )
                 documents.append(doc)
         print(f"Created {len(documents)} document chunks from {len(self.articles)} articles")
+        #
         vectorstore = FAISS.from_documents(documents, OpenAIEmbeddings(model="text-embedding-3-large"))
         vectorstore.save_local('./vectorstore')
         print(f"Vector store saved to ./vectorstore")
@@ -100,7 +103,7 @@ class ArticleScraper:
     def _is_same_domain(self, url: str) -> bool:
         return urlparse(url).netloc == urlparse(self.base_url).netloc
 
-    def scrape_articles(self, urls: List[str]) -> None:
+    def scrape_articles(self, urls: List[str]) -> List[Dict]:
         print(f"Starting to scrape {len(urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_url = {executor.submit(self.scrape_article, url): url for url in urls}
@@ -119,6 +122,7 @@ class ArticleScraper:
                 time.sleep(delay)
                 completed = len(self.scraped_urls) + len(self.failed_urls)
                 print(f"Progress: {completed}/{len(urls)} articles processed")
+        return self.articles
     
     def scrape_article(self, url: str) -> Optional[Dict]:
         try:
