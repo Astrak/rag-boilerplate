@@ -164,7 +164,7 @@ class ArticleScraper:
                 print(f"Progress: {completed}/{len(urls)} articles processed")
         with gzip.open("./scraped_articles.pkl.gz", 'wb') as f:
             pickle.dump(self.articles, f)
-        print(f"Saved {len(self.articles)} dictionaries to {"./scraped-articles.pkl.gz"} (compressed)")
+        print(f"Saved {len(self.articles)} dictionaries to ./scraped-articles.pkl.gz (compressed)")
         return self.articles
     
     def scrape_article(self, url: str) -> Optional[dict]:
