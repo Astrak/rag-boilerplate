@@ -10,6 +10,8 @@ import time
 from typing import cast, Optional
 import re
 import tiktoken
+import pickle
+import gzip
 
 DELAY = 0.05 # delay to not Ddos the server
 MAX_TOKENS_PER_REQUEST = 260000
@@ -160,6 +162,9 @@ class ArticleScraper:
                 time.sleep(DELAY)
                 completed = len(self.scraped_urls) + len(self.failed_urls)
                 print(f"Progress: {completed}/{len(urls)} articles processed")
+        with gzip.open("./scraped_articles.pkl.gz", 'wb') as f:
+            pickle.dump(self.articles, f)
+        print(f"Saved {len(self.articles)} dictionaries to {"./scraped-articles.pkl.gz"} (compressed)")
         return self.articles
     
     def scrape_article(self, url: str) -> Optional[dict]:

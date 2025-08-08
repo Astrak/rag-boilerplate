@@ -22,7 +22,7 @@ with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
 EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
 articles = scraper.scrape_articles(lines)
-store = scraper.create_vector_store()
+# store = scraper.create_vector_store()
 
 
 # app = FastAPI()
