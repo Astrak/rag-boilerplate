@@ -11,12 +11,6 @@ import boto3
 
 fill_env()
 
-prompt = get_prompt()
-
-vector_store = get_store()
-
-graph = Graph(vector_store, prompt)
-
 s3 = boto3.client('s3', region_name="eu-north-1")
 os.makedirs("./polemia-urls/", exist_ok=True)
 s3.download_file("rag-faiss-index-bucket", "polemia-urls/url-list.csv", "./polemia-urls/url-list.csv")
@@ -27,7 +21,7 @@ with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
         lines.append(row[0])
 EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
-articles = scraper.scrape_articles(lines[:50])
+articles = scraper.scrape_articles(lines[:200])
 store = scraper.create_vector_store()
 
 
@@ -44,6 +38,12 @@ store = scraper.create_vector_store()
 #     return {"results": result['answer']}
 
 ##### Telegram bot
+
+prompt = get_prompt()
+
+vector_store = get_store()
+
+graph = Graph(vector_store, prompt)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
