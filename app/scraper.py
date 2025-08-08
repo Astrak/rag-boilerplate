@@ -10,8 +10,13 @@ from typing import List, Set, Dict, Optional
 import time
 from typing import cast
 import re
+import tiktoken
+import openai
+import numpy
 
-delay = 0.05 # delay to not Ddos the server
+DELAY = 0.05 # delay to not Ddos the server
+MAX_TOKENS_PER_REQUEST = 300000
+MODEL = "text-embedding-3-large"
 
 class ArticleScraper:
     def __init__(self, base_url, excluded_paths = []):
@@ -38,6 +43,7 @@ class ArticleScraper:
 
     def create_vector_store(self) -> FAISS:
         print("Creating vector store...")
+        """Split in documents to match vectorization limit"""
         documents = []
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2600,
@@ -61,11 +67,47 @@ class ArticleScraper:
                 )
                 documents.append(doc)
         print(f"Created {len(documents)} document chunks from {len(self.articles)} articles")
-        #
-        vectorstore = FAISS.from_documents(documents, OpenAIEmbeddings(model="text-embedding-3-large"))
-        vectorstore.save_local('./vectorstore')
+
+        """Group all documents in subbatches inferior to OpenAI's token limit"""
+        encoding = tiktoken.encoding_for_model(MODEL)
+        batches = []
+        current_batch = []
+        current_token_count = 0
+        for text in documents:
+            text_tokens = len(encoding.encode(text))
+            if current_token_count + text_tokens > MAX_TOKENS_PER_REQUEST:
+                batches.append(current_batch)
+                current_batch = [text]
+                current_token_count = text_tokens
+            else:
+                current_batch.append(text)
+                current_token_count += text_tokens
+        if current_batch:
+            batches.append(current_batch)
+        
+        """Create embeddings for the documents batches"""
+        embeddings = []
+        for i, batch in enumerate(batches):
+            print(f"Processing batch {i+1}/{len(batches)}")
+            try:
+                response = openai.embeddings.create(
+                    model=MODEL,
+                    input=batch
+                )
+                batch_embeddings = [data.embedding for data in response.data]
+                embeddings.extend(batch_embeddings)
+                time.sleep(0.1)
+            except Exception as e:
+                print(f"Error processing batch {i+1}: {e}")
+        embeddings_model = OpenAIEmbeddings(model=MODEL)
+        embeddings_array = numpy.array(embeddings, dtype=numpy.float32)
+        vector_store = FAISS.from_embeddings(
+            text_embeddings=list(zip(documents, embeddings_array)),
+            embedding=embeddings_model
+        )
+        vector_store.save_local('./vectorstore')
         print(f"Vector store saved to ./vectorstore")
-        return vectorstore
+        return vector_store
 
     def discover_urls(self) -> dict["str", List[str]]:
         discovered_urls = set()
@@ -91,7 +133,7 @@ class ArticleScraper:
                     href = cast(str, cast(Tag, link).get('href'))
                     if self._is_same_domain(href):
                         to_visit.add(href)
-                time.sleep(delay) 
+                time.sleep(DELAY) 
             except Exception as e:
                 print(f"Error crawling {current_url}: {e}")
                 to_revisit.add(current_url)
@@ -119,7 +161,7 @@ class ArticleScraper:
                 except Exception as e:
                     print(f"Error processing {url}: {e}")
                     self.failed_urls.add(url)
-                time.sleep(delay)
+                time.sleep(DELAY)
                 completed = len(self.scraped_urls) + len(self.failed_urls)
                 print(f"Progress: {completed}/{len(urls)} articles processed")
         return self.articles

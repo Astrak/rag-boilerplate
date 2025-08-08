@@ -8,7 +8,6 @@ from scraper import ArticleScraper
 from vector_store import get_store
 import csv
 import boto3
-import tiktoken
 
 fill_env()
 
@@ -28,9 +27,8 @@ with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
         lines.append(row[0])
 EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
-#articles = scraper.scrape_articles(lines[:200]) #only do 200 first lines
-#store = scraper.create_vector_store()
-print(tiktoken.encoding_for_model("text-embedding-3-large"))
+articles = scraper.scrape_articles(lines[:200]) # Only do 200 first lines
+store = scraper.create_vector_store()
 
 
 # app = FastAPI()
