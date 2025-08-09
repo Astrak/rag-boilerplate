@@ -26,7 +26,7 @@ class Graph:
 
     def generate(self, state: State):
         contents = list[str]
-        for doc in state['context']
+        for doc in state['context']:
             contents.append(f'{doc.page_content}\nAuteur: {doc.metadata.author}\nDate: {doc.metadata.date}\nSource: {doc.metadata.url}\nTitre: {doc.metadata.title}')
         docs_content = "\n\n".join(contents)
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
