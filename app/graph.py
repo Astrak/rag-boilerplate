@@ -19,7 +19,7 @@ class Graph:
         self.graph = graph.compile()
 
     def retrieve(self, state: State):
-        print(f'Received question: {state['question']}')
+        print(f'Received question: {state["question"]}')
         scraper = ArticleScraper(base_url="https://www.polemia.com")
         retrieved_docs = scraper.chunked_similarity_search(state["question"])
         # retrieved_docs = self.vector_store.similarity_search(state["question"])
