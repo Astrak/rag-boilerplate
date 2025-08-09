@@ -54,7 +54,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = graph.invoke(update.message.text)
     answer = result['answer']
     print(answer)
-    await update.message.reply_text(answer, parse_mode="HTML") # type: ignore
+    await update.message.reply_text(answer, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(bot_token).build() # type: ignore
