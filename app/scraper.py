@@ -61,9 +61,9 @@ class ArticleScraper:
                     page_content=chunk,
                     metadata={
                         'source': article['url'],
-                        'title': article['title'],
+                        'titre': article['title'],
                         'date': article['date'],
-                        'author': article['author'],
+                        'auteur': article['author'],
                         'chunk_id': i,
                         'total_chunks': len(text_chunks),
                         'word_count': article['word_count'],

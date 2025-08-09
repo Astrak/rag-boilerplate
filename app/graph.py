@@ -25,13 +25,9 @@ class Graph:
         return {"context": retrieved_docs}
 
     def generate(self, state: State):
-        contents = list[str]
+        contents: list[str] = []
         for doc in state['context']:
-            print(doc.metadata)
-            try:
-                contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["url"]}\nTitre: {doc.metadata["title"]}')
-            except Exception as e:
-                print(e, doc.metadata)
+            contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["auteur"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["titre"]}')
         docs_content = "\n\n".join(contents)
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
