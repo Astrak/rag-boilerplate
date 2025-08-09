@@ -246,3 +246,21 @@ class ArticleScraper:
                 print(f"Error in batch {i+1}: {e}")
                 break
         print("Embeddings complete")
+
+    def create_chunked_faiss_system(self):
+        """Create multiple smaller FAISS indices"""
+        embeddings = [f for f in os.listdir('./polemia-embeddigs') if f.startswith('batch_') and f.endswith('.pkl')]
+        n_embeddings = len(embeddings)
+        batches = self.prepare_articles_in_doc_batches_for_embeddings()
+        chunk_size = 20 # memory ceiling is at around 24-26 of the given batches
+        for i in range(0, n_embeddings, chunk_size):
+            chunk_embeddings = embeddings[i:i+chunk_size]
+            chunk_texts = batches[i:i+chunk_size]
+            embeddings_array = np.array(chunk_embeddings, dtype=np.float32)
+            dimension = embeddings_array.shape[1]
+            index = FAISS.IndexFlatL2(dimension)
+            index.add(embeddings_array)
+            FAISS.write_index(index, f"polemia-embeddings/faisschunk{i//chunk_size}.index")
+            with open(f"polemia-embeddings/textschunk{i//chunk_size}.pkl", "wb") as f:
+                pickle.dump(chunk_texts, f)
+            print(f'Created vector index and batch text file for chunks {i}-{i//chunk_size}')
