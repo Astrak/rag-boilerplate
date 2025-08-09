@@ -271,7 +271,7 @@ class ArticleScraper:
             dimension = embeddings_array.shape[1]
             index = faiss.IndexFlatL2(dimension)
             index.add(embeddings_array)
-            FAISS.write_index(index, f"polemia-embeddings/faisschunk_{i//chunk_size}.index")
+            faiss.write_index(index, f"polemia-embeddings/faisschunk_{i//chunk_size}.index")
             with open(f"polemia-embeddings/textbatches_{i//chunk_size}.pkl", "wb") as f:
                 pickle.dump(textbatches_chunk, f)
             print(f'Created vector index and batch text file for chunks {i}-{i//chunk_size}')
