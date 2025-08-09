@@ -220,24 +220,20 @@ class ArticleScraper:
         progress_file = os.path.join(CHECKPOINT_DIR, "progress.pkl")
         if os.path.exists(progress_file):
             with open(progress_file, "rb") as f:
-                completed_batches, all_embeddings, processed_docs = pickle.load(f)
+                completed_batches = pickle.load(f)
             print(f"Resuming from batch {len(completed_batches)}")
         else:
             completed_batches = []
-            all_embeddings = []
-            processed_docs = []
         embeddings_model = OpenAIEmbeddings(model=MODEL)
         
         for i, batch in enumerate(batches, start=len(completed_batches)):
-            print(f"Processing batch {i+1}/{len(batches) + len(completed_batches)}")
+            print(f"Processing batch {i+1}/{len(batches)}")
             try:
                 batch_texts = [doc.page_content for doc in batch]
                 batch_embeddings = embeddings_model.embed_documents(batch_texts)
-                all_embeddings.extend(batch_embeddings)
-                processed_docs.extend(batch)
                 completed_batches.append(i)
                 with open(progress_file, "wb") as f:
-                    pickle.dump((completed_batches, all_embeddings, processed_docs), f)
+                    pickle.dump((completed_batches), f)
                 batch_file = os.path.join(CHECKPOINT_DIR, f"batch_{i+1}.pkl")
                 with open(batch_file, "wb") as f:
                     pickle.dump((batch, batch_embeddings), f)
@@ -245,4 +241,4 @@ class ArticleScraper:
             except Exception as e:
                 print(f"Error in batch {i+1}: {e}")
                 break
-        return all_embeddings, processed_docs
+        print("Embeddings complete")
