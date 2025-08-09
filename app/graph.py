@@ -19,6 +19,7 @@ class Graph:
         self.graph = graph.compile()
 
     def retrieve(self, state: State):
+        print(f'Received question: {state['question']}')
         scraper = ArticleScraper(base_url="https://www.polemia.com")
         retrieved_docs = scraper.chunked_similarity_search(state["question"])
         # retrieved_docs = self.vector_store.similarity_search(state["question"])
@@ -27,14 +28,9 @@ class Graph:
     def generate(self, state: State):
         contents: list[str] = []
         for doc in state['context']:
-            print(doc.metadata)
-            try:
-                contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-            except Exception as e:
-                print(e)
+            contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         docs_content = "\n\n".join(contents)
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
-        print(messages)
         llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
         response = llm.invoke(messages)
         return {"answer": response.content}

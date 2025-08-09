@@ -2,7 +2,7 @@ import os
 from prompt import get_prompt
 from env import fill_env
 from graph import Graph
-from telegram import Update
+from telegram import Update, ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from scraper import ArticleScraper
 from vector_store import get_store
@@ -49,12 +49,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("Handled")
-    # bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
+    await context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
     result = graph.invoke(update.message.text)
     answer = result['answer']
     print(answer)
-    await update.message.reply_text(answer) # type: ignore
+    await update.message.reply_text(answer, parse_mode="MarkdownV2") # type: ignore
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(bot_token).build() # type: ignore
