@@ -2,7 +2,8 @@ import os
 from prompt import get_prompt
 from env import fill_env
 from graph import Graph
-from telegram import Update, ChatAction
+from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from scraper import ArticleScraper
 from vector_store import get_store
