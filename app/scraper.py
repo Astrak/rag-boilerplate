@@ -13,7 +13,8 @@ import tiktoken
 import pickle
 import gzip
 import os
-import numpy as np
+import numpy as np 
+import faiss
 
 DELAY = 0.05 # delay to not Ddos the server
 MAX_TOKENS_PER_REQUEST = 260000
@@ -268,7 +269,7 @@ class ArticleScraper:
                     textbatches_chunk.extend(batch)
             embeddings_array = np.array(embeddings_chunk, dtype=np.float32)
             dimension = embeddings_array.shape[1]
-            index = FAISS.IndexFlatL2(dimension)
+            index = faiss.IndexFlatL2(dimension)
             index.add(embeddings_array)
             FAISS.write_index(index, f"polemia-embeddings/faisschunk_{i//chunk_size}.index")
             with open(f"polemia-embeddings/textbatches_{i//chunk_size}.pkl", "wb") as f:
