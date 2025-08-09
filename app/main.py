@@ -23,7 +23,7 @@ EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
 scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
 # articles = scraper.scrape_articles(lines)
 # scraper.create_embeddings_with_checkpoint()
-scraper.create_chunked_faiss_system()
+# scraper.create_chunked_faiss_system()
 # store = scraper.create_vector_store()
 
 
@@ -43,9 +43,7 @@ scraper.create_chunked_faiss_system()
 
 prompt = get_prompt()
 
-vector_store = get_store()
-
-graph = Graph(vector_store, prompt)
+graph = Graph(prompt)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore

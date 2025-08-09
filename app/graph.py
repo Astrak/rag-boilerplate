@@ -4,6 +4,7 @@ from typing_extensions import TypedDict, List
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain.chat_models import init_chat_model
+from scraper import ArticleScraper
 
 class State(TypedDict):
     question: str
@@ -11,15 +12,16 @@ class State(TypedDict):
     answer: str
 
 class Graph:
-    def __init__(self, vector_store: FAISS, prompt: PromptTemplate): 
-        self.vector_store = vector_store;
+    def __init__(self, prompt: PromptTemplate):
         self.prompt = prompt
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
 
     def retrieve(self, state: State):
-        retrieved_docs = self.vector_store.similarity_search(state["question"])
+        scraper = ArticleScraper(base_url="https://www.polemia.com")
+        retrieved_docs = scraper.chunked_similarity_search(state["question"])
+        # retrieved_docs = self.vector_store.similarity_search(state["question"])
         return {"context": retrieved_docs}
 
     def generate(self, state: State):
