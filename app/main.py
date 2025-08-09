@@ -53,8 +53,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
-        result = await graph.invoke(update.message.text)
-        await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True) # type: ignore
+        result = graph.invoke(update.message.text)
+        update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True) # type: ignore
     except Exception as e:
         print(e)
 
