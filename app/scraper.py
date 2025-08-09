@@ -249,7 +249,7 @@ class ArticleScraper:
 
     def create_chunked_faiss_system(self):
         """Create multiple smaller FAISS indices"""
-        embeddings = [f for f in os.listdir('./polemia-embeddigs') if f.startswith('batch_') and f.endswith('.pkl')]
+        embeddings = [f for f in os.listdir('./polemia-embeddings') if f.startswith('batch_') and f.endswith('.pkl')]
         n_embeddings = len(embeddings)
         batches = self.prepare_articles_in_doc_batches_for_embeddings()
         chunk_size = 20 # memory ceiling is at around 24-26 of the given batches
