@@ -284,9 +284,9 @@ class ArticleScraper:
         n_chunks = len(embeddings_chunks)
         results_per_chunk = results // n_chunks + 1
         for chunk_id in range(n_chunks):
-            index = faiss.read_index(f"faisschunk_{chunk_id}.index")
+            index = faiss.read_index(f"./polemia-embeddings/faisschunk_{chunk_id}.index")
             scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-            with open(f"textbatches_{chunk_id}.pkl", "rb") as f:
+            with open(f"./polemia-embeddings/textbatches_{chunk_id}.pkl", "rb") as f:
                 chunk_texts: list[Document] = pickle.load(f)
             for score, idx in zip(scores[0], indices[0]):
                 if idx < len(chunk_texts):
