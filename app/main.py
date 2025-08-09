@@ -51,9 +51,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia. Je réalise des courtes notes sur vos questions de sociétés en 20 à 40 secondes environ. Chaque question est traitée séparément.\n\nQu'est-ce qui vous intéresse ?") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
-    result = await graph.invoke(update.message.text)
-    await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
+    try:
+        context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
+        result = await graph.invoke(update.message.text)
+        await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
+    except Exception as e:
+        print(e)
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(bot_token).build() # type: ignore
