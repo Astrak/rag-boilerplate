@@ -62,7 +62,6 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             action=ChatAction.TYPING
         )
-    print(answer)
     await update.message.reply_text(answer, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')

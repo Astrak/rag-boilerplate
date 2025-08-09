@@ -5,6 +5,7 @@ from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain.chat_models import init_chat_model
 from scraper import ArticleScraper
+import time
 
 class State(TypedDict):
     question: str
@@ -30,9 +31,19 @@ class Graph:
         for doc in state['context']:
             contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         docs_content = "\n\n".join(contents)
+        print('############')
+        print('############')
+        print('############')
+        print('############')
+        print('Liste des sources retenues : ')
+        print(docs_content)
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
+        start_time = time.time()
         llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
         response = llm.invoke(messages)
+        print(response.content)
+        delay = time.time() - start_time
+        print("Answered in %ssec" (delay))
         return {"answer": response.content}
     
     def invoke(self, text):
