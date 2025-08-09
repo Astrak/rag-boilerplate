@@ -43,7 +43,7 @@ class Graph:
         response = llm.invoke(messages)
         print(response.content)
         delay = time.time() - start_time
-        print("Answered in %ssec" (delay))
+        print("Answered in %ssec" % delay)
         return {"answer": response.content}
     
     def invoke(self, text):
