@@ -1,7 +1,7 @@
-import os
-import boto3
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
+import pickle
+import numpy as np
 
 def get_store():
     # os.makedirs("./vectorstore", exist_ok=True)

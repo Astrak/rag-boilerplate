@@ -90,8 +90,8 @@ class ArticleScraper:
 
         return batches
 
-    def create_vector_store(self) -> FAISS:
-        print("Creating vector store...")
+    def create_vector_store(self, batches: list[list[Document]]) -> FAISS:
+        print("Creating vector store, make sure enough RAM is available...")
         
         """Create embeddings for the documents batches"""
         embeddings_model = OpenAIEmbeddings(model=MODEL)
@@ -225,6 +225,10 @@ class ArticleScraper:
         else:
             completed_batches = []
         embeddings_model = OpenAIEmbeddings(model=MODEL)
+
+        if len(completed_batches) >= len(batches):
+            print("Embeddings complete")
+            return
         
         for i, batch in enumerate(batches, start=len(completed_batches)):
             print(f"Processing batch {i+1}/{len(batches)}")
