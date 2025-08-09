@@ -277,7 +277,7 @@ class ArticleScraper:
                 pickle.dump(textbatches_chunk, f)
             print(f'Created vector index and batch text file for chunks {i}-{i//chunk_size}')
 
-    def search_chunked_system(self, query_embedding, results=5):
+    def search_chunked_system(self, query_embedding, results=20):
         """Search across all chunks and merge results"""
         all_results: list[Document] = []
         embeddings_chunks = [f for f in os.listdir('./polemia-embeddings') if f.startswith('faisschunk_') and f.endswith('.index')]
