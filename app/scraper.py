@@ -259,6 +259,14 @@ class ArticleScraper:
                 with open(f"./{CHECKPOINT_DIR}/batch_{i*chunk_size+j+1}.pkl", 'rb') as f:
                     batch, embeddings_batch = pickle.load(f)
                     embeddings_chunk.append(embeddings_batch)
+                    print(f"Type: {type(embeddings_chunk)}")
+                    print(f"Length: {len(embeddings_chunk)}")
+                    print(f"First item type: {type(embeddings_chunk[0])}")
+                    print(f"First item length: {len(embeddings_chunk[0]) if hasattr(embeddings_chunk[0], '__len__') else 'No length'}")
+
+                    # Check the shape more carefully
+                    for i, emb in enumerate(embeddings_chunk):
+                        print(f"Embedding {i}: type={type(emb)}, shape/length={np.array(emb).shape if hasattr(emb, '__len__') else 'scalar'}")
                     textbatches_chunk.append(batch)
             embeddings_array = np.array(embeddings_chunk, dtype=np.float32)
             dimension = embeddings_array.shape[1]
