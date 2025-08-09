@@ -48,7 +48,7 @@ prompt = get_prompt()
 graph = Graph(prompt)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia. Je réalise des courtes notes sur vos questions de sociétés en 20 secondes environ. Chaque question est traitée séparément.\n\nQu'est-ce qui vous intéresse ?") # type: ignore
+    await update.message.reply_text(f"Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia. Je réalise des courtes notes sur vos questions de sociétés en 20 à 40 secondes environ. Chaque question est traitée séparément.\n\nQu'est-ce qui vous intéresse ?") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     task = asyncio.create_task(graph.invoke(update.message.text))
@@ -64,6 +64,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(4)
     if result is None:
         result = await task
+    answer = result['answer']
     await update.message.reply_text(answer, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
