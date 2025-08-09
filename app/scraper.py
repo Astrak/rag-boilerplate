@@ -12,10 +12,13 @@ import re
 import tiktoken
 import pickle
 import gzip
+import os
+import numpy as np
 
 DELAY = 0.05 # delay to not Ddos the server
 MAX_TOKENS_PER_REQUEST = 260000
 MODEL = "text-embedding-3-large"
+CHECKPOINT_DIR = "polemia-embeddings"
 
 class ArticleScraper:
     def __init__(self, base_url, excluded_paths = []):
@@ -40,15 +43,16 @@ class ArticleScraper:
                 return True
         return False
 
-    def create_vector_store(self) -> FAISS:
-        print("Creating vector store...")
-        """Split in documents to match vectorization limit"""
+    def prepare_articles_in_doc_batches_for_embeddings(self) -> list[list[Document]]:
+        """Split articles in documents according to ideal token length for vectorization"""
+        with gzip.open("./scraped_articles.pkl.gz", 'rb') as f:
+            articles = pickle.load(f)
         documents: list[Document] = []
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2600,
             chunk_overlap=500,
         )
-        for article in self.articles:
+        for article in articles:
             text_chunks = text_splitter.split_text(article['content'])
             for i, chunk in enumerate(text_chunks):
                 doc = Document(
@@ -83,6 +87,11 @@ class ArticleScraper:
                 current_token_count += text_tokens
         if current_batch:
             batches.append(current_batch)
+
+        return batches
+
+    def create_vector_store(self) -> FAISS:
+        print("Creating vector store...")
         
         """Create embeddings for the documents batches"""
         embeddings_model = OpenAIEmbeddings(model=MODEL)
@@ -203,3 +212,37 @@ class ArticleScraper:
         except Exception as e:
             print(f"Error scraping {url}: {e}")
             return None
+    
+    def create_embeddings_with_checkpoint(self):
+        batches = self.prepare_articles_in_doc_batches_for_embeddings()
+        
+        os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+        progress_file = os.path.join(CHECKPOINT_DIR, "progress.pkl")
+        if os.path.exists(progress_file):
+            with open(progress_file, "rb") as f:
+                completed_batches, all_embeddings, processed_docs = pickle.load(f)
+            print(f"Resuming from batch {len(completed_batches)}")
+        else:
+            completed_batches = []
+            all_embeddings = []
+            processed_docs = []
+        embeddings_model = OpenAIEmbeddings(model=MODEL)
+        
+        for i, batch in enumerate(batches, start=len(completed_batches)):
+            print(f"Processing batch {i+1}/{len(batches) + len(completed_batches)}")
+            try:
+                batch_texts = [doc.page_content for doc in batch]
+                batch_embeddings = embeddings_model.embed_documents(batch_texts)
+                all_embeddings.extend(batch_embeddings)
+                processed_docs.extend(batch)
+                completed_batches.append(i)
+                with open(progress_file, "wb") as f:
+                    pickle.dump((completed_batches, all_embeddings, processed_docs), f)
+                batch_file = os.path.join(CHECKPOINT_DIR, f"batch_{i+1}.pkl")
+                with open(batch_file, "wb") as f:
+                    pickle.dump((batch, batch_embeddings), f)
+                print(f"Batch {i+1} completed and saved")
+            except Exception as e:
+                print(f"Error in batch {i+1}: {e}")
+                break
+        return all_embeddings, processed_docs
