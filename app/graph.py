@@ -41,7 +41,7 @@ class Graph:
         start_time = time.time()
         llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
         response = llm.invoke(messages)
-        print(response.content)
+        print(f"\nRéponse :\n\n{response.content}")
         delay = time.time() - start_time
         print("Answered in %ssec" % delay)
         return {"answer": response.content}

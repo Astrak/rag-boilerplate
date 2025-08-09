@@ -51,17 +51,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia. Je réalise des courtes notes sur vos questions de sociétés en 20 secondes environ. Chaque question est traitée séparément.\n\nQu'est-ce qui vous intéresse ?") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    for _ in range(10): 
-        if _ == 0:
-            result = graph.invoke(update.message.text)
-            answer = result['answer']
-        if result:
+    task = asyncio.create_task(graph.invoke(update.message.text))
+    result = None
+    for _ in range(5):
+        if task.done():
+            result = task.result()
             break
-        await asyncio.sleep(2)
         await context.bot.send_chat_action(
             chat_id=update.effective_chat.id,
             action=ChatAction.TYPING
         )
+        await asyncio.sleep(4)
+    if result is None:
+        result = await task
     await update.message.reply_text(answer, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
 
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
