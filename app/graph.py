@@ -44,7 +44,7 @@ class Graph:
         print(f"\nRéponse :\n\n{response.content}")
         delay = time.time() - start_time
         print("Answered in %ssec" % delay)
-        return response.content
+        return {'answer': response.content}
     
     def invoke(self, text):
         return self.graph.invoke({"question": text}) # type: ignore
