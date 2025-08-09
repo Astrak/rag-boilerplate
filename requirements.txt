@@ -13,3 +13,4 @@ python-telegram-bot
 beautifulsoup4
 tiktoken
 openai
+asyncio

@@ -9,6 +9,7 @@ from scraper import ArticleScraper
 from vector_store import get_store
 import csv
 import boto3
+import asyncio
 
 fill_env()
 
@@ -47,12 +48,20 @@ prompt = get_prompt()
 graph = Graph(prompt)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Hello {update.effective_user.first_name}! I am your demo bot.") # type: ignore
+    await update.message.reply_text(f"Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia. Je réalise des courtes notes sur vos questions de sociétés en 20 secondes environ. Chaque question est traitée séparément.\n\nQu'est-ce qui vous intéresse ?") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
-    result = graph.invoke(update.message.text)
-    answer = result['answer']
+    for _ in range(10): 
+        if _ == 0:
+            result = graph.invoke(update.message.text)
+            answer = result['answer']
+        if result:
+            break
+        await asyncio.sleep(2)
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id,
+            action=ChatAction.TYPING
+        )
     print(answer)
     await update.message.reply_text(answer, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
 
