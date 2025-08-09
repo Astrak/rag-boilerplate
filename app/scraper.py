@@ -69,7 +69,7 @@ class ArticleScraper:
                     }
                 )
                 documents.append(doc)
-        print(f"Created {len(documents)} document chunks from {len(self.articles)} articles")
+        print(f"Created {len(documents)} document chunks from {len(articles)} articles")
 
         """Group all documents in subbatches inferior to OpenAI's token limit"""
         encoding = tiktoken.encoding_for_model(MODEL)
@@ -215,7 +215,7 @@ class ArticleScraper:
     
     def create_embeddings_with_checkpoint(self):
         batches = self.prepare_articles_in_doc_batches_for_embeddings()
-        
+
         os.makedirs(CHECKPOINT_DIR, exist_ok=True)
         progress_file = os.path.join(CHECKPOINT_DIR, "progress.pkl")
         if os.path.exists(progress_file):
