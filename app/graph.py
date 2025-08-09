@@ -25,7 +25,9 @@ class Graph:
         return {"context": retrieved_docs}
 
     def generate(self, state: State):
-        print(state['context'][0], state['context'][0].metadata)
+        print(state['context'][0])
+        print('#############')
+        print(state['context'][0].metadata)
         docs_content = "\n\n".join(doc.page_content for doc in state["context"])
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
