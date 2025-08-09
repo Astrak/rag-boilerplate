@@ -255,7 +255,7 @@ class ArticleScraper:
         for i in range(0, n_embeddings, chunk_size):
             print(f"Processing batch chunk #{i}")
             embeddings_chunk: list[list[float]] = []
-            textbatches_chunk: list[list[Document]] = []
+            textbatches_chunk: list[Document] = []
             for j in range(0,chunk_size):
                 current_batch = i + j + 1
                 if current_batch > n_embeddings:
@@ -264,8 +264,8 @@ class ArticleScraper:
                 print(f'Opening {batch_file}')
                 with open(batch_file, 'rb') as f:
                     batch, embeddings_batch = pickle.load(f)
-                    embeddings_chunk.append(embeddings_batch)
-                    textbatches_chunk.append(batch)
+                    embeddings_chunk.extend(embeddings_batch)
+                    textbatches_chunk.extend(batch)
             embeddings_array = np.array(embeddings_chunk, dtype=np.float32)
             dimension = embeddings_array.shape[1]
             index = FAISS.IndexFlatL2(dimension)
