@@ -296,8 +296,11 @@ class ArticleScraper:
         return all_results
 
     def chunked_similarity_search(self, question_text) -> list[Document]:
+        print(f'Received question: {question_text}')
         response = openai.embeddings.create(input=question_text,model=MODEL)
-        question_embeddings = response.data[0].embedding;
+        question_embeddings = response.data[0].embedding
+        print('Successfully generated embeddings for question')
         matching_documents = self.search_chunked_system(question_embeddings)
+        print('Found matching documents')
         return matching_documents
         
