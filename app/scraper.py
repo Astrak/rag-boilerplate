@@ -253,18 +253,23 @@ class ArticleScraper:
         n_embeddings = len(embeddings)
         chunk_size = 20 # memory ceiling is at around 24-26 of the given batches
         for i in range(0, n_embeddings, chunk_size):
+            print(f"Processing batch chunk #{i}")
             embeddings_chunk: list[list[float]] = []
             textbatches_chunk: list[list[Document]] = []
             for j in range(0,chunk_size):
-                with open(f"./{CHECKPOINT_DIR}/batch_{i*chunk_size+j+1}.pkl", 'rb') as f:
+                current_batch = i + j + 1
+                if current_batch > n_embeddings:
+                    break
+                batch_file = f"./{CHECKPOINT_DIR}/batch_{current_batch}.pkl"
+                print(f'Opening {batch_file}')
+                with open(batch_file, 'rb') as f:
                     batch, embeddings_batch = pickle.load(f)
                     embeddings_chunk.append(embeddings_batch)
+                    print(embeddings_batch)
                     print(f"Type: {type(embeddings_chunk)}")
                     print(f"Length: {len(embeddings_chunk)}")
                     print(f"First item type: {type(embeddings_chunk[0])}")
                     print(f"First item length: {len(embeddings_chunk[0]) if hasattr(embeddings_chunk[0], '__len__') else 'No length'}")
-
-                    # Check the shape more carefully
                     for i, emb in enumerate(embeddings_chunk):
                         print(f"Embedding {i}: type={type(emb)}, shape/length={np.array(emb).shape if hasattr(emb, '__len__') else 'scalar'}")
                     textbatches_chunk.append(batch)
