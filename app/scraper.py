@@ -255,7 +255,7 @@ class ArticleScraper:
         chunk_size = 20 # memory ceiling is at around 24-26 of the given batches
         for i in range(0, n_embeddings, chunk_size):
             embeddings_chunk: list[list[float]] = []
-            for j in chunk_size:
+            for j in range(0,chunk_size):
                 with open(f"./{CHECKPOINT_DIR}/batch_{i*chunk_size+j+1}.pkl", 'rb') as f:
                     embeddings_batch = pickle.load(f)
                     embeddings_chunk.append(embeddings_batch)
