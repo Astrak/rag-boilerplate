@@ -55,7 +55,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         async def set_writing():
             while True:
-                await context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
+                context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
                 await asyncio.sleep(4)
         maintain_writing_status = asyncio.create_task(set_writing())
         result = graph.invoke(update.message.text)
