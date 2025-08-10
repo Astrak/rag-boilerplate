@@ -32,11 +32,11 @@ class Graph:
         print('############')
         print('############')
         print(f'Received question: {state["question"]}')
-        print(f'Found {len(contents)} matching documents:')
         contents: list[str] = []
         for doc in state['context']:
             print(doc.metadata['source'])
             contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
+        print(f'Found {len(contents)} matching documents:')
         docs_content = "\n\n".join(contents)
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         start_time = time.time()
