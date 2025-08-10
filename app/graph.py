@@ -18,7 +18,7 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
-        self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
+        self.llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai", temperature=0.1)
 
     def retrieve(self, state: State):
         scraper = ArticleScraper(base_url="https://www.polemia.com")
