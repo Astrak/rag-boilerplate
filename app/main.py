@@ -49,7 +49,7 @@ prompt = get_prompt()
 graph = Graph(prompt)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia. Je réalise des courtes notes sur vos questions de sociétés en 20 à 40 secondes environ. Chaque question est traitée séparément.\n\nQu'est-ce qui vous intéresse ?") # type: ignore
+    await update.message.reply_text(f"👋 Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia.\n\n📑 Je réalise des courtes notes sur vos questions de société. Chaque question est traitée séparément.\n\n👉 Qu'est-ce qui vous intéresse ?") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
