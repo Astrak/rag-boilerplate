@@ -53,13 +53,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        async def set_writing():
+            while True:
+                await context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
+                await asyncio.sleep(4)
+        maintain_writing_status = asyncio.create_task(set_writing())
         result = graph.invoke(update.message.text)
         paragraphs = result['answer'].split('\n\n')
         if len(paragraphs) > 1:
             paragraphs[1] = '📝 ' + paragraphs[1]
         result_with_smileys = re.sub(r'^- ', '👉 ', '✅ ' + '\n\n'.join(paragraphs), flags=re.MULTILINE)
-        print(f'Formalized for Telegram:\n\n{result_with_smileys}')
         await update.message.reply_text(result_with_smileys, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
+        maintain_writing_status.cancel()
     except Exception as e:
         print(e)
 
