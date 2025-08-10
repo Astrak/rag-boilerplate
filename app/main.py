@@ -10,6 +10,7 @@ from vector_store import get_store
 import csv
 import boto3
 import asyncio
+import re
 
 fill_env()
 
@@ -54,7 +55,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
         result = graph.invoke(update.message.text)
-        await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True) # type: ignore
+        result_with_smileys = re.sub(r'^- ', '👉 ', result['answer'], flags=re.MULTILINE)
+        await update.message.reply_text(result_with_smileys, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
     except Exception as e:
         print(e)
 
