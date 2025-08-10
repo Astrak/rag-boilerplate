@@ -18,6 +18,7 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
+        self.llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai", max_output_tokens=600, temperature=0.2)
 
     def retrieve(self, state: State):
         print(f'Received question: {state["question"]}')
@@ -36,13 +37,12 @@ class Graph:
         print('############')
         print('############')
         print('Liste des sources retenues : ')
-        print(docs_content)
+        print(f'Found {len(contents)} matching documents')
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         start_time = time.time()
-        llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
-        response = llm.invoke(messages)
-        print(f"\nRéponse :\n\n{response.content}")
+        response = self.llm.invoke(messages)
         delay = time.time() - start_time
+        print(f"\nRéponse :\n\n{response.content}")
         print("Answered in %ssec" % delay)
         return {'answer': response.content}
     
