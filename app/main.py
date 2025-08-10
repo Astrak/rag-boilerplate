@@ -57,7 +57,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         paragraphs = result['answer'].split('\n\n')
         if len(paragraphs) > 1:
             paragraphs[1] = '📝 ' + paragraphs[1]
-        result_with_smileys = re.sub(r'^- ', '👉 ', '✅ ' + '\n\n'.join(paragraphs), flags=re.MULTILINE)
+        result_with_smileys = re.sub(r'^- ', '👉 ', '\n\n'.join(paragraphs), flags=re.MULTILINE)
         await update.message.reply_text(result_with_smileys, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
     except Exception as e:
         print(e)
