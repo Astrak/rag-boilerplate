@@ -40,8 +40,8 @@ class Graph:
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         start_time = time.time()
         response = self.llm.invoke(messages)
-        print("LLM answered in %ssec:" % delay)
         delay = time.time() - start_time
+        print("LLM answered in %ssec:" % delay)
         print(f"\nRéponse :\n\n{response.content}")
         return {'answer': response.content}
     
