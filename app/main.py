@@ -55,7 +55,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
         result = graph.invoke(update.message.text)
-        paragraphs = result.split('\n\n')
+        paragraphs = result['answer'].split('\n\n')
         paragraphs[1] = '📝 ' + paragraphs[1]
         result_with_smileys = re.sub(r'^- ', '👉 ', '✅ ' + '\n\n'.join(paragraphs), flags=re.MULTILINE)
         print(f'Formalized for Telegram:\n\n{result_with_smileys}')
