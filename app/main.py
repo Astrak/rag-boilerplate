@@ -55,7 +55,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         result = graph.invoke(update.message.text)
         paragraphs = result['answer'].split('\n\n')
-        if len(paragraphs > 1):
+        if len(paragraphs) > 1:
             paragraphs[1] = '📝 ' + paragraphs[1]
         result_with_smileys = re.sub(r'^- ', '👉 ', '✅ ' + '\n\n'.join(paragraphs), flags=re.MULTILINE)
         print(f'Formalized for Telegram:\n\n{result_with_smileys}')
