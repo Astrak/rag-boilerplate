@@ -18,7 +18,7 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
-        self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", max_output_tokens=500)
+        self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai")
 
     def retrieve(self, state: State):
         print(f'Received question: {state["question"]}')
