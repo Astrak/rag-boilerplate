@@ -21,7 +21,6 @@ class Graph:
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai")
 
     def retrieve(self, state: State):
-        print(f'Received question: {state["question"]}')
         scraper = ArticleScraper(base_url="https://www.polemia.com")
         retrieved_docs = scraper.chunked_similarity_search(state["question"])
         # retrieved_docs = self.vector_store.similarity_search(state["question"])
@@ -36,15 +35,14 @@ class Graph:
         print('############')
         print('############')
         print('############')
-        print('Liste des sources retenues : ')
-        print(f'Found {len(contents)} matching documents')
+        print(f'Received question: {state["question"]}')
+        print(f'Found {len(contents)} matching documents, sending to LLM...')
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
-        print(messages)
         start_time = time.time()
         response = self.llm.invoke(messages)
+        print("LLM answered in %ssec:" % delay)
         delay = time.time() - start_time
         print(f"\nRéponse :\n\n{response.content}")
-        print("Answered in %ssec" % delay)
         return {'answer': response.content}
     
     def invoke(self, text):
