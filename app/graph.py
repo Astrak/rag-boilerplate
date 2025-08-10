@@ -18,7 +18,7 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
-        self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai")
+        self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=1)
 
     def retrieve(self, state: State):
         scraper = ArticleScraper(base_url="https://www.polemia.com")
@@ -27,16 +27,17 @@ class Graph:
         return {"context": retrieved_docs}
 
     def generate(self, state: State):
-        contents: list[str] = []
-        for doc in state['context']:
-            contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        docs_content = "\n\n".join(contents)
         print('############')
         print('############')
         print('############')
         print('############')
         print(f'Received question: {state["question"]}')
-        print(f'Found {len(contents)} matching documents, sending to LLM...')
+        print(f'Found {len(contents)} matching documents:')
+        contents: list[str] = []
+        for doc in state['context']:
+            print(doc.metadata['source'])
+            contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
+        docs_content = "\n\n".join(contents)
         messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         start_time = time.time()
         response = self.llm.invoke(messages)
