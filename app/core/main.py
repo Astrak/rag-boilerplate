@@ -1,12 +1,12 @@
 import os
-from prompt import get_prompt
-from env import fill_env
-from graph import Graph
+from core.prompt import get_prompt
+from config.env import fill_env
+from data.graph import Graph
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
-from scraper import ArticleScraper
-from vector_store import get_store
+from scraper.scraper import ArticleScraper
+from data.vector_store import get_store
 import csv
 import boto3
 import asyncio
