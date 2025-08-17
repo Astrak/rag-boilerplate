@@ -1,22 +1,18 @@
 import os
 
+def load_env_variable(var_name: str) -> None:
+    """Load and set an environment variable, raise error if not found."""
+    value = os.getenv(var_name)
+    if not value:
+        raise EnvironmentError(f"{var_name} not found")
+    os.environ[var_name] = value
+
 def fill_env():
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise EnvironmentError("OPENAI_API_KEY not found")
-    os.environ["OPENAI_API_KEY"] = openai_api_key
-
-    langsmith_api_key = os.getenv("LANGSMITH_API_KEY")
-    if not langsmith_api_key:
-        raise EnvironmentError("LANGSMITH_API_KEY not found")
-    os.environ["LANGSMITH_API_KEY"] = langsmith_api_key
-
-    google_api_key = os.getenv("GOOGLE_API_KEY")
-    if not google_api_key:
-        raise EnvironmentError("GOOGLE_API_KEY not found")
-    os.environ["GOOGLE_API_KEY"] = google_api_key
-
-    telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    if not telegram_bot_token:
-        raise EnvironmentError("TELEGRAM_BOT_TOKEN not found")
-    os.environ["TELEGRAM_BOT_TOKEN"] = telegram_bot_token
+    env_vars = [
+        "OPENAI_API_KEY",
+        "LANGSMITH_API_KEY",
+        "GOOGLE_API_KEY",
+        "TELEGRAM_BOT_TOKEN",
+    ]
+    for var in env_vars:
+        load_env_variable(var)
