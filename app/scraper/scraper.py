@@ -1,306 +1,326 @@
-from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-from urllib.parse import urlparse
-import requests
-from bs4 import BeautifulSoup, Tag
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import time
-from typing import cast, Optional
-import re
-import tiktoken
-import pickle
-import gzip
+import logging
 import os
-import numpy as np 
-import faiss
-import openai
+from typing import List, Optional, Dict, Any
+from .config import ScraperConfig
+from .models import Article, ScrapingResult
+from .web_scraper import WebScraper
+from .text_processor import TextProcessor
+from .vector_store import VectorStoreManager
+from .data_manager import DataManager
+from .utils import create_directory_if_not_exists
 
-DELAY = 0.05 # delay to not Ddos the server
-MAX_TOKENS_PER_REQUEST = 260000
-MODEL = "text-embedding-3-large"
-CHECKPOINT_DIR = "polemia-embeddings"
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('scraper.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 class ArticleScraper:
-    def __init__(self, base_url, excluded_paths = []):
-        print('Initialize scraper')
-        self.base_url = base_url
-        self.excluded_paths = excluded_paths
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (compatible; ArticleScraper/1.0)'
-        })
-        self.scraped_urls: set[str] = set()
-        self.failed_urls: set[str] = set()
-        self.articles: list[dict] = []
+    """
+    Main scraper class that orchestrates web scraping, text processing, and vector store operations.
     
-    def is_url_excluded(self, url: str) -> bool:
-        parsed_url = urlparse(url)
-        path = parsed_url.path
-        for excluded_path in self.excluded_paths:
-            if excluded_path.startswith('/') and path.startswith(excluded_path):
-                return True
-            elif re.search(excluded_path, path):
-                return True
-        return False
-
-    def prepare_articles_in_doc_batches_for_embeddings(self) -> list[list[Document]]:
-        """Split articles in documents according to ideal token length for vectorization"""
-        with gzip.open("./scraped_articles.pkl.gz", 'rb') as f:
-            articles = pickle.load(f)
-        documents: list[Document] = []
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=2600,
-            chunk_overlap=500,
-        )
-        for article in articles:
-            text_chunks = text_splitter.split_text(article['content'])
-            for i, chunk in enumerate(text_chunks):
-                doc = Document(
-                    page_content=chunk,
-                    metadata={
-                        'source': article['url'],
-                        'title': article['title'],
-                        'date': article['date'],
-                        'author': article['author'],
-                        'chunk_id': i,
-                        'total_chunks': len(text_chunks),
-                        'word_count': article['word_count'],
-                        'meta_description': article['meta_description']
-                    }
-                )
-                documents.append(doc)
-        print(f"Created {len(documents)} document chunks from {len(articles)} articles")
-
-        """Group all documents in subbatches inferior to OpenAI's token limit"""
-        encoding = tiktoken.encoding_for_model(MODEL)
-        batches: list[list[Document]] = []
-        current_batch = []
-        current_token_count = 0
-        for doc in documents:
-            text_tokens = len(encoding.encode(doc.page_content))
-            if current_token_count + text_tokens > MAX_TOKENS_PER_REQUEST:
-                batches.append(current_batch)
-                current_batch = [doc]
-                current_token_count = text_tokens
-            else:
-                current_batch.append(doc)
-                current_token_count += text_tokens
-        if current_batch:
-            batches.append(current_batch)
-
-        return batches
-
-    def create_vector_store(self, batches: list[list[Document]]) -> FAISS:
-        print("Creating vector store, make sure enough RAM is available...")
+    This class provides a high-level interface for:
+    - Discovering and scraping articles from websites
+    - Processing and chunking text content
+    - Creating embeddings and vector stores
+    - Managing the entire scraping pipeline
+    """
+    
+    def __init__(self, base_url: str, excluded_paths: List[str] = None, config: Optional[ScraperConfig] = None):
+        """
+        Initialize the ArticleScraper.
         
-        """Create embeddings for the documents batches"""
-        embeddings_model = OpenAIEmbeddings(model=MODEL)
-        all_embeddings = []
-        all_docs: list[Document] = []
-        for i, batch in enumerate(batches):
-            print(f"Processing batch {i+1}/{len(batches)}")
-            try:
-                batch_texts = [doc.page_content for doc in batch]
-                batch_embeddings = embeddings_model.embed_documents(batch_texts)
-                all_embeddings.extend(batch_embeddings)
-                all_docs.extend(batch)
-                time.sleep(0.1)
-            except Exception as e:
-                print(f"Error processing batch {i+1}: {e}")
-        vector_store = FAISS.from_embeddings(
-            embedding=embeddings_model,
-            text_embeddings=[(doc.page_content, embedding) for doc, embedding in zip(all_docs, all_embeddings)],
-            metadatas=[doc.metadata for doc in all_docs]  # Preserve metadata
-        )
-        vector_store.save_local('./vectorstore')
-        print(f"Vector store saved to ./vectorstore")
-        return vector_store
-
-    def discover_urls(self) -> dict["str", list[str]]:
-        discovered_urls = set()
-        to_visit = {self.base_url}
-        to_revisit = set()
-        visited = set()
-        while to_visit:
-            current_url = to_visit.pop()
-            if current_url in visited:
-                continue
-            try:
-                response = self.session.get(current_url, timeout=10)
-                response.raise_for_status()
-                visited.add(current_url)
-                soup = BeautifulSoup(response.content, 'html.parser')
-                for selector in ['article div a[href]']:
-                    for link in soup.select(selector):
-                        href = cast(str, link.get('href'))
-                        if href and self._is_same_domain(href) and not href in discovered_urls: 
-                            discovered_urls.add(href)
-                            print(f"{len(discovered_urls)} urls, added: {href}")
-                for link in soup.find_all('a', href=True):
-                    href = cast(str, cast(Tag, link).get('href'))
-                    if self._is_same_domain(href):
-                        to_visit.add(href)
-                time.sleep(DELAY) 
-            except Exception as e:
-                print(f"Error crawling {current_url}: {e}")
-                to_revisit.add(current_url)
-        return {
-            "discovered": list(url for url in discovered_urls if not self.is_url_excluded(url)), 
-            "failed": list(to_revisit)
-        }
+        Args:
+            base_url: The base URL to start scraping from
+            excluded_paths: List of URL patterns to exclude from scraping
+            config: Configuration object (uses default if not provided)
+        """
+        logger.info('Initializing ArticleScraper')
+        
+        # Set up configuration
+        if config is None:
+            config = ScraperConfig()
+        
+        # Add base_url to config
+        config.base_url = base_url
+        config.excluded_paths = excluded_paths or []
+        
+        self.config = config
+        self.excluded_paths = excluded_paths or []
+        
+        # Initialize components
+        self.data_manager = DataManager(config)
+        self.web_scraper = WebScraper(config, self.data_manager)
+        self.text_processor = TextProcessor(config)
+        self.vector_store_manager = VectorStoreManager(config)
+        
+        # Ensure directories exist
+        create_directory_if_not_exists(self.config.checkpoint_dir)
+        create_directory_if_not_exists(self.config.vectorstore_dir)
+        
+        logger.info(f'ArticleScraper initialized for {base_url}')
     
-    def _is_same_domain(self, url: str) -> bool:
-        return urlparse(url).netloc == urlparse(self.base_url).netloc
-
-    def scrape_articles(self, urls: list[str]) -> list[dict]:
-        print(f"Starting to scrape {len(urls)} articles...")
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_url = {executor.submit(self.scrape_article, url): url for url in urls}
-            for future in as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    article_data = future.result()
-                    if article_data:
-                        self.articles.append(article_data)
-                        self.scraped_urls.add(url)
-                    else:
-                        self.failed_urls.add(url)
-                except Exception as e:
-                    print(f"Error processing {url}: {e}")
-                    self.failed_urls.add(url)
-                time.sleep(DELAY)
-                completed = len(self.scraped_urls) + len(self.failed_urls)
-                print(f"Progress: {completed}/{len(urls)} articles processed")
-        with gzip.open("./scraped_articles.pkl.gz", 'wb') as f:
-            pickle.dump(self.articles, f)
-        print(f"Saved {len(self.articles)} dictionaries to ./scraped-articles.pkl.gz (compressed)")
-        return self.articles
-    
-    def scrape_article(self, url: str) -> Optional[dict]:
+    def run_full_pipeline(self) -> Dict[str, Any]:
+        """
+        Run the complete scraping pipeline: discover URLs, scrape articles, 
+        process text, and create vector store.
+        
+        Returns:
+            Dictionary containing results from each pipeline stage
+        """
+        logger.info("Starting full scraping pipeline")
+        
         try:
-            response = self.session.get(url, timeout=15)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.content, 'html.parser')
-            title = cast(Tag, soup.select_one('h1.entry-title')).get_text(strip=True)
-            content_elem = soup.select_one('#contenu')
-            content = None
-            if content_elem:
-                for script in content_elem(["script", "style", "nav", "footer", "iframe"]):
-                    script.decompose()
-                content = content_elem.get_text(separator='\n', strip=True)
-            if not content:
-                print(f"No content found for {url}")
-                return None
-            date = cast(Tag, soup.select_one('.et_pb_title_container .published')).get_text(strip=True)
-            author = cast(Tag, soup.select_one('.et_pb_title_container .author')).get_text(strip=True)
-            meta_description = ""
-            meta_tag = soup.find('meta', attrs={'name': 'description'})
-            if meta_tag:
-                meta_description = cast(Tag, meta_tag).get('content', '')
-            article_data = {
-                'url': url,
-                'title': title,
-                'content': content,
-                'date': date,
-                'author': author,
-                'meta_description': meta_description,
-                'word_count': len(content.split()),
-                'scraped_at': time.time()
+            # Stage 1: Discover URLs
+            logger.info("Stage 1: URL Discovery")
+            discovery_result = self.web_scraper.discover_urls()
+            discovered_urls = discovery_result["discovered"]
+            
+            if not discovered_urls:
+                logger.warning("No URLs discovered. Pipeline cannot continue.")
+                return {"error": "No URLs discovered"}
+            
+            # Stage 2: Scrape Articles
+            logger.info("Stage 2: Article Scraping")
+            scraping_result = self.web_scraper.scrape_articles(discovered_urls)
+            
+            if not scraping_result.successful_urls:
+                logger.warning("No articles successfully scraped. Pipeline cannot continue.")
+                return {"error": "No articles scraped", "scraping_result": scraping_result}
+            
+            # Stage 3: Load and Process Articles
+            logger.info("Stage 3: Text Processing")
+            articles = self.data_manager.load_articles()
+            documents = self.text_processor.create_documents_from_articles(articles)
+            batches = self.text_processor.create_batches_for_embeddings(documents)
+            
+            # Stage 4: Create Vector Store
+            logger.info("Stage 4: Vector Store Creation")
+            vector_store = self.vector_store_manager.create_vector_store(batches)
+            
+            # Stage 5: Create Chunked System (optional)
+            logger.info("Stage 5: Creating Chunked FAISS System")
+            self.vector_store_manager.create_chunked_faiss_system()
+            
+            pipeline_result = {
+                "discovery": discovery_result,
+                "scraping": scraping_result,
+                "text_processing": {
+                    "total_articles": len(articles),
+                    "total_documents": len(documents),
+                    "total_batches": len(batches)
+                },
+                "vector_store": {
+                    "created": True,
+                    "location": self.config.vectorstore_dir
+                },
+                "chunked_system": {
+                    "created": True,
+                    "location": self.config.checkpoint_dir
+                }
             }
-            print(f"Successfully scraped: {url} ({article_data['word_count']} words)")
-            return article_data
+            
+            logger.info("Full pipeline completed successfully")
+            return pipeline_result
+            
         except Exception as e:
-            print(f"Error scraping {url}: {e}")
-            return None
+            logger.error(f"Pipeline failed: {e}")
+            raise
     
-    def create_embeddings_with_checkpoint(self):
-        batches = self.prepare_articles_in_doc_batches_for_embeddings()
-
-        os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-        progress_file = os.path.join(CHECKPOINT_DIR, "progress.pkl")
-        if os.path.exists(progress_file):
-            with open(progress_file, "rb") as f:
-                completed_batches = pickle.load(f)
-            print(f"Resuming from batch {len(completed_batches)}")
-        else:
-            completed_batches = []
-        embeddings_model = OpenAIEmbeddings(model=MODEL)
-
-        if len(completed_batches) >= len(batches):
-            print("Embeddings complete")
-            return
+    def discover_and_scrape(self) -> ScrapingResult:
+        """
+        Discover URLs and scrape articles without creating vector store.
         
-        for i, batch in enumerate(batches, start=len(completed_batches)):
-            print(f"Processing batch {i+1}/{len(batches)}")
-            try:
-                batch_texts = [doc.page_content for doc in batch]
-                batch_embeddings = embeddings_model.embed_documents(batch_texts)
-                completed_batches.append(i)
-                with open(progress_file, "wb") as f:
-                    pickle.dump((completed_batches), f)
-                batch_file = os.path.join(CHECKPOINT_DIR, f"batch_{i+1}.pkl")
-                with open(batch_file, "wb") as f:
-                    pickle.dump((batch, batch_embeddings), f)
-                print(f"Batch {i+1} completed and saved")
-            except Exception as e:
-                print(f"Error in batch {i+1}: {e}")
-                break
-        print("Embeddings complete")
-
-    def create_chunked_faiss_system(self):
-        """Create multiple smaller FAISS indices"""
-        embeddings = [f for f in os.listdir('./polemia-embeddings') if f.startswith('batch_') and f.endswith('.pkl')]
-        n_embeddings = len(embeddings)
-        chunk_size = 20 # memory ceiling is at around 24-26 of the given batches
-        for i in range(0, n_embeddings, chunk_size):
-            print(f"Processing batch chunk #{i}")
-            embeddings_chunk: list[list[float]] = []
-            textbatches_chunk: list[Document] = []
-            for j in range(0,chunk_size):
-                current_batch = i + j + 1
-                if current_batch > n_embeddings:
-                    break
-                batch_file = f"./{CHECKPOINT_DIR}/batch_{current_batch}.pkl"
-                print(f'Opening {batch_file}')
-                with open(batch_file, 'rb') as f:
-                    batch, embeddings_batch = pickle.load(f)
-                    embeddings_chunk.extend(embeddings_batch)
-                    textbatches_chunk.extend(batch)
-            embeddings_array = np.array(embeddings_chunk, dtype=np.float32)
-            dimension = embeddings_array.shape[1]
-            index = faiss.IndexFlatL2(dimension)
-            index.add(embeddings_array)
-            faiss.write_index(index, f"polemia-embeddings/faisschunk_{i//chunk_size}.index")
-            with open(f"polemia-embeddings/textbatches_{i//chunk_size}.pkl", "wb") as f:
-                pickle.dump(textbatches_chunk, f)
-            print(f'Created vector index and batch text file for chunks {i}-{i//chunk_size}')
-
-    def search_chunked_system(self, query_embedding, results=20):
-        """Search across all chunks and merge results"""
-        all_results: list[Document] = []
-        embeddings_chunks = [f for f in os.listdir('./polemia-embeddings') if f.startswith('faisschunk_') and f.endswith('.index')]
-        n_chunks = len(embeddings_chunks)
-        results_per_chunk = results // n_chunks + 1
-        for chunk_id in range(n_chunks):
-            index = faiss.read_index(f"./polemia-embeddings/faisschunk_{chunk_id}.index")
-            scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-            with open(f"./polemia-embeddings/textbatches_{chunk_id}.pkl", "rb") as f:
-                chunk_texts: list[Document] = pickle.load(f)
-            for score, idx in zip(scores[0], indices[0]):
-                if idx < len(chunk_texts):
-                    all_results.append(chunk_texts[idx])
-                    # all_results.append((score, chunk_texts[idx])) # Tuples list with score
-        # all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
-        return all_results
-
-    def chunked_similarity_search(self, question_text) -> list[Document]:
-        print(f'Received question: {question_text}')
-        response = openai.embeddings.create(input=question_text,model=MODEL)
-        question_embeddings = response.data[0].embedding
-        print('Successfully generated embeddings for question')
-        matching_documents = self.search_chunked_system(question_embeddings)
-        print('Found matching documents')
-        return matching_documents
+        Returns:
+            ScrapingResult containing information about the scraping operation
+        """
+        logger.info("Starting URL discovery and article scraping")
+        
+        try:
+            # Discover URLs
+            discovery_result = self.web_scraper.discover_urls()
+            discovered_urls = discovery_result["discovered"]
+            
+            if not discovered_urls:
+                logger.warning("No URLs discovered")
+                return ScrapingResult(
+                    successful_urls=[],
+                    failed_urls=[],
+                    total_processed=0,
+                    success_rate=0.0
+                )
+            
+            # Scrape articles
+            scraping_result = self.web_scraper.scrape_articles(discovered_urls)
+            
+            logger.info(f"Discovery and scraping completed. Success rate: {scraping_result.success_rate:.1%}")
+            return scraping_result
+            
+        except Exception as e:
+            logger.error(f"Discovery and scraping failed: {e}")
+            raise
+    
+    def create_vector_store_from_existing(self) -> Any:
+        """
+        Create vector store from previously scraped articles.
+        
+        Returns:
+            FAISS vector store object
+        """
+        logger.info("Creating vector store from existing articles")
+        
+        try:
+            # Load articles
+            articles = self.data_manager.load_articles()
+            if not articles:
+                logger.warning("No articles found. Please run scraping first.")
+                return None
+            
+            # Process text
+            documents = self.text_processor.create_documents_from_articles(articles)
+            batches = self.text_processor.create_batches_for_embeddings(documents)
+            
+            # Create vector store
+            vector_store = self.vector_store_manager.create_vector_store(batches)
+            
+            logger.info("Vector store created successfully from existing articles")
+            return vector_store
+            
+        except Exception as e:
+            logger.error(f"Failed to create vector store from existing articles: {e}")
+            raise
+    
+    def create_embeddings_with_checkpoint(self) -> None:
+        """
+        Create embeddings with checkpointing for resumability.
+        This is useful for large datasets that may take a long time to process.
+        """
+        logger.info("Starting checkpointed embeddings creation")
+        
+        try:
+            # Load articles
+            articles = self.data_manager.load_articles()
+            if not articles:
+                logger.warning("No articles found. Please run scraping first.")
+                return
+            
+            # Process text
+            documents = self.text_processor.create_documents_from_articles(articles)
+            batches = self.text_processor.create_batches_for_embeddings(documents)
+            
+            # Create embeddings with checkpointing
+            self.vector_store_manager.create_embeddings_with_checkpoint(batches)
+            
+            logger.info("Checkpointed embeddings creation completed")
+            
+        except Exception as e:
+            logger.error(f"Checkpointed embeddings creation failed: {e}")
+            raise
+    
+    def search_similar_documents(self, query: str, results: int = 20) -> List[Article]:
+        """
+        Search for similar documents using the chunked FAISS system.
+        
+        Args:
+            query: The search query text
+            results: Maximum number of results to return
+            
+        Returns:
+            List of similar documents
+        """
+        logger.info(f"Searching for documents similar to: {query}")
+        
+        try:
+            matching_documents = self.vector_store_manager.chunked_similarity_search(query)
+            
+            # Convert documents back to articles (simplified)
+            articles = []
+            for doc in matching_documents[:results]:
+                # Create a simplified article from document metadata
+                article = Article(
+                    url=doc.metadata.get('source', ''),
+                    title=doc.metadata.get('title', ''),
+                    content=doc.page_content,
+                    date=doc.metadata.get('date', ''),
+                    author=doc.metadata.get('author', ''),
+                    meta_description=doc.metadata.get('meta_description', ''),
+                    word_count=len(doc.page_content.split()),
+                    scraped_at=doc.metadata.get('scraped_at', 0)
+                )
+                articles.append(article)
+            
+            logger.info(f"Found {len(articles)} similar documents")
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Document search failed: {e}")
+            return []
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics about the current scraping state.
+        
+        Returns:
+            Dictionary containing various statistics
+        """
+        try:
+            articles_count = self.data_manager.get_articles_count()
+            
+            stats = {
+                "articles_count": articles_count,
+                "checkpoint_dir": self.config.checkpoint_dir,
+                "vectorstore_dir": self.config.vectorstore_dir,
+                "scraped_articles_file": self.config.scraped_articles_file,
+                "articles_file_size_mb": None,
+                "checkpoint_files_count": 0,
+                "faiss_indices_count": 0
+            }
+            
+            # Get file sizes and counts
+            if os.path.exists(self.config.scraped_articles_file):
+                from .utils import get_file_size_mb
+                stats["articles_file_size_mb"] = get_file_size_mb(self.config.scraped_articles_file)
+            
+            if os.path.exists(self.config.checkpoint_dir):
+                checkpoint_files = [f for f in os.listdir(self.config.checkpoint_dir) 
+                                  if f.startswith('batch_') and f.endswith('.pkl')]
+                faiss_files = [f for f in os.listdir(self.config.checkpoint_dir) 
+                              if f.startswith('faisschunk_') and f.endswith('.index')]
+                
+                stats["checkpoint_files_count"] = len(checkpoint_files)
+                stats["faiss_indices_count"] = len(faiss_files)
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Failed to get statistics: {e}")
+            return {"error": str(e)}
+    
+    def cleanup_old_data(self, keep_recent_backups: int = 3) -> None:
+        """
+        Clean up old data files and backups.
+        
+        Args:
+            keep_recent_backups: Number of recent backups to keep
+        """
+        logger.info("Starting cleanup of old data")
+        
+        try:
+            # Clean up old backups
+            self.data_manager.cleanup_old_backups(keep_recent_backups)
+            
+            # Clean up old checkpoint files (optional)
+            # This could be extended to clean up old FAISS indices, etc.
+            
+            logger.info("Cleanup completed successfully")
+            
+        except Exception as e:
+            logger.error(f"Cleanup failed: {e}")
+            raise
         
