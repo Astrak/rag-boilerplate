@@ -1,50 +1,14 @@
 import os
-from core.prompt import get_prompt
+from core.prompt import get_telegram_prompt
 from config.env import fill_env
 from data.graph import Graph
 from telegram import Update
-from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
-from scraper.scraper import ArticleScraper
-from data.vector_store import get_store
-import csv
-import boto3
-import asyncio
 import re
 
 fill_env()
 
-s3 = boto3.client('s3', region_name="eu-north-1")
-os.makedirs("./polemia-urls/", exist_ok=True)
-s3.download_file("rag-faiss-index-bucket", "polemia-urls/url-list.csv", "./polemia-urls/url-list.csv")
-lines: list[str] = []
-with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
-    csv_reader = csv.reader(file)
-    for row in csv_reader:
-        lines.append(row[0])
-EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
-scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
-# articles = scraper.scrape_articles(lines)
-# scraper.create_embeddings_with_checkpoint()
-# scraper.create_chunked_faiss_system()
-# store = scraper.create_vector_store()
-
-
-# app = FastAPI()
-
-# class SearchRequest(BaseModel):
-#     question: str
-
-# @app.post("/search")
-# def search(request: SearchRequest):
-#     print('search request received: ' + request.question)
-#     result = graph.invoke({"question": request.question})  # pyright: ignore[reportArgumentType]
-#     print('similarity search finished')
-#     return {"results": result['answer']}
-
-##### Telegram bot
-
-prompt = get_prompt()
+prompt = get_telegram_prompt()
 
 graph = Graph(prompt)
 
