@@ -12,6 +12,13 @@ The server regularly updates the local indices downstream.
 
 ## Server Start
 
+The environment requires the following keys:
+
+- OPENAI_API_KEY
+- LANGSMITH_API_KEY
+- GOOGLE_API_KEY
+- TELEGRAM_BOT_TOKEN
+
 ```py
 nohup python3 app/main.py &
 ```
