@@ -1,7 +1,7 @@
 import os
 from apps.telegram.prompt import get_prompt
 from apps.telegram.env import fill_env
-from apps.telegram.graph import Graph
+from graph import Graph
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 import re
