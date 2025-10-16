@@ -10,6 +10,15 @@ It is designed to run on a lightweight server (EC2 t3micro), so the indices are 
 The indices are sychronized on an S3, which is updated when a new web scraping is done.
 The server regularly updates the local indices downstream.
 
+## Install
+
+```python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -m requirements.txt
+pip install -e .
+```
+
 ## Server Start
 
 The environment requires the following keys:
@@ -19,6 +28,11 @@ The environment requires the following keys:
 - GOOGLE_API_KEY
 - TELEGRAM_BOT_TOKEN
 
-```py
-nohup python3 app/main.py &
+```python
+nohup python3 app.telegram.main &
 ```
+
+## Debug
+
+Clear the following:
+pip install -m requirements.txt
