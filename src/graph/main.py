@@ -11,6 +11,8 @@ import faiss
 import pickle
 import numpy as np 
 
+CHECKPOINT_DIR = "../polemia-embeddings"
+
 class State(TypedDict):
     question: str
     context: List[Document]
@@ -57,13 +59,13 @@ class Graph:
     def search_chunked_system(self, query_embedding, results=20):
         """Search across all chunks and merge results"""
         all_results: list[Document] = []
-        embeddings_chunks = [f for f in os.listdir('./polemia-embeddings') if f.startswith('faisschunk_') and f.endswith('.index')]
+        embeddings_chunks = [f for f in os.listdir(CHECKPOINT_DIR) if f.startswith('faisschunk_') and f.endswith('.index')]
         n_chunks = len(embeddings_chunks)
         results_per_chunk = results // n_chunks + 1
         for chunk_id in range(n_chunks):
-            index = faiss.read_index(f"./polemia-embeddings/faisschunk_{chunk_id}.index")
+            index = faiss.read_index(f"./{CHECKPOINT_DIR}/faisschunk_{chunk_id}.index")
             scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-            with open(f"./polemia-embeddings/textbatches_{chunk_id}.pkl", "rb") as f:
+            with open(f"./{CHECKPOINT_DIR}/textbatches_{chunk_id}.pkl", "rb") as f:
                 chunk_texts: list[Document] = pickle.load(f)
             for score, idx in zip(scores[0], indices[0]):
                 if idx < len(chunk_texts):

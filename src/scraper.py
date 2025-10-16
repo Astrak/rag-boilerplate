@@ -20,7 +20,7 @@ import openai
 DELAY = 0.05 # delay to not Ddos the server
 MAX_TOKENS_PER_REQUEST = 260000
 MODEL = "text-embedding-3-large"
-CHECKPOINT_DIR = "polemia-embeddings"
+CHECKPOINT_DIR = "../polemia-embeddings"
 
 class ArticleScraper:
     def __init__(self, base_url, excluded_paths = []):
@@ -251,7 +251,7 @@ class ArticleScraper:
 
     def create_chunked_faiss_system(self):
         """Create multiple smaller FAISS indices"""
-        embeddings = [f for f in os.listdir('./polemia-embeddings') if f.startswith('batch_') and f.endswith('.pkl')]
+        embeddings = [f for f in os.listdir(CHECKPOINT_DIR) if f.startswith('batch_') and f.endswith('.pkl')]
         n_embeddings = len(embeddings)
         chunk_size = 20 # memory ceiling is at around 24-26 of the given batches
         for i in range(0, n_embeddings, chunk_size):
@@ -272,21 +272,21 @@ class ArticleScraper:
             dimension = embeddings_array.shape[1]
             index = faiss.IndexFlatL2(dimension)
             index.add(embeddings_array)
-            faiss.write_index(index, f"polemia-embeddings/faisschunk_{i//chunk_size}.index")
-            with open(f"polemia-embeddings/textbatches_{i//chunk_size}.pkl", "wb") as f:
+            faiss.write_index(index, f"{CHECKPOINT_DIR}/faisschunk_{i//chunk_size}.index")
+            with open(f"{CHECKPOINT_DIR}/textbatches_{i//chunk_size}.pkl", "wb") as f:
                 pickle.dump(textbatches_chunk, f)
             print(f'Created vector index and batch text file for chunks {i}-{i//chunk_size}')
 
     def search_chunked_system(self, query_embedding, results=20):
         """Search across all chunks and merge results"""
         all_results: list[Document] = []
-        embeddings_chunks = [f for f in os.listdir('./polemia-embeddings') if f.startswith('faisschunk_') and f.endswith('.index')]
+        embeddings_chunks = [f for f in os.listdir(f'./{CHECKPOINT_DIR}') if f.startswith('faisschunk_') and f.endswith('.index')]
         n_chunks = len(embeddings_chunks)
         results_per_chunk = results // n_chunks + 1
         for chunk_id in range(n_chunks):
-            index = faiss.read_index(f"./polemia-embeddings/faisschunk_{chunk_id}.index")
+            index = faiss.read_index(f"{CHECKPOINT_DIR}/faisschunk_{chunk_id}.index")
             scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-            with open(f"./polemia-embeddings/textbatches_{chunk_id}.pkl", "rb") as f:
+            with open(f"{CHECKPOINT_DIR}/textbatches_{chunk_id}.pkl", "rb") as f:
                 chunk_texts: list[Document] = pickle.load(f)
             for score, idx in zip(scores[0], indices[0]):
                 if idx < len(chunk_texts):
