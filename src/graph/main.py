@@ -11,7 +11,7 @@ import faiss
 import pickle
 import numpy as np 
 
-CHECKPOINT_DIR = "../polemia-embeddings"
+CHECKPOINT_DIR = "polemia-embeddings"
 
 class State(TypedDict):
     question: str

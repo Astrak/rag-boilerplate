@@ -20,7 +20,7 @@ import openai
 DELAY = 0.05 # delay to not Ddos the server
 MAX_TOKENS_PER_REQUEST = 260000
 MODEL = "text-embedding-3-large"
-CHECKPOINT_DIR = "../polemia-embeddings"
+CHECKPOINT_DIR = "polemia-embeddings"
 
 class ArticleScraper:
     def __init__(self, base_url, excluded_paths = []):
