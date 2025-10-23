@@ -12,6 +12,10 @@ graph = Graph(prompt)
 
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return "hello world"
+
 class SearchRequest(BaseModel):
     question: str
 
