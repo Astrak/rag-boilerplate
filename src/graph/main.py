@@ -33,6 +33,7 @@ class Graph:
         print('Successfully generated embeddings for question')
         matching_documents = self.search_chunked_system(question_embeddings)
         print('Found matching documents')
+        print(matching_documents)
         return {"context": matching_documents}
 
     def generate(self, state: State):
