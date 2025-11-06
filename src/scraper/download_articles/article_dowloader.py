@@ -73,7 +73,9 @@ class ArticleDownloader:
                 print(f"No content found for {url}")
                 return None
             date = cast(Tag, soup.select_one('.et_pb_title_container .published')).get_text(strip=True)
-            author = cast(Tag, soup.select_one('.et_pb_title_container .author')).get_text(strip=True)
+            author_element = cast(Tag, soup.select_one('.et_pb_title_container .author'))
+            if author_element:
+                author = author_element.get_text(strip=True)
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
             if meta_tag:
