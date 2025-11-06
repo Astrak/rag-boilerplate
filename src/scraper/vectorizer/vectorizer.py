@@ -63,7 +63,7 @@ class Vectorizer:
                 current_batch = i + j + 1
                 if current_batch > n_embeddings:
                     break
-                batch_file = f"{self.checkpoint_dir}batch_{current_batch}.pkl"
+                batch_file = f"{self.checkpoint_dir}/batch_{current_batch}.pkl"
                 print(f'Opening {batch_file}')
                 with open(batch_file, 'rb') as f:
                     batch, embeddings_batch = pickle.load(f)
