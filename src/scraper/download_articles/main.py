@@ -1,4 +1,4 @@
-from src.scraper.download_articles import ArticleDownloader
+from src.scraper.download_articles.article_dowloader import ArticleDownloader
 
 FOLDER = "./ojim-urls/"
 
