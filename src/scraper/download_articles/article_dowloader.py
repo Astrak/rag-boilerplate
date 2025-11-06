@@ -74,6 +74,7 @@ class ArticleDownloader:
                 return None
             date = cast(Tag, soup.select_one('.et_pb_title_container .published')).get_text(strip=True)
             author_element = cast(Tag, soup.select_one('.et_pb_title_container .author'))
+            author = None
             if author_element:
                 author = author_element.get_text(strip=True)
             meta_description = ""
