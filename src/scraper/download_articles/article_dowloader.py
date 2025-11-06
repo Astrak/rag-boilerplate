@@ -33,6 +33,7 @@ class ArticleDownloader:
         with open(f'{self.folder}url-list.csv', 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
+                print(row)
                 self.urls.append(row[0])
         print(f"Starting to scrape {len(self.urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
