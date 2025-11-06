@@ -1,6 +1,6 @@
 from apps.api.prompt import get_prompt
 from apps.api.env import fill_env
-from graph import Graph
+from graph.main import Graph
 from fastapi import FastAPI
 from pydantic import BaseModel
 
