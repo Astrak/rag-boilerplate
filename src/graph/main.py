@@ -1,4 +1,3 @@
-from langchain_community.vectorstores import FAISS
 from langgraph.graph import StateGraph, START
 from typing_extensions import TypedDict, List
 from langchain_core.documents import Document
@@ -11,7 +10,7 @@ import faiss
 import pickle
 import numpy as np 
 
-CHECKPOINT_DIR = "polemia-embeddings"
+EMBEDDINGS = ["polemia-urls/embeddings", "ojim-urls/embeddings"]
 
 class State(TypedDict):
     question: str
@@ -56,21 +55,22 @@ class Graph:
         print(f"\nRéponse :\n\n{response.content}")
         return {'answer': response.content}
     
-    def search_chunked_system(self, query_embedding, results=20):
+    def search_chunked_system(self, query_embedding, results=10):
         """Search across all chunks and merge results"""
         all_results: list[Document] = []
-        embeddings_chunks = [f for f in os.listdir(CHECKPOINT_DIR) if f.startswith('faisschunk_') and f.endswith('.index')]
-        n_chunks = len(embeddings_chunks)
-        results_per_chunk = results // n_chunks + 1
-        for chunk_id in range(n_chunks):
-            index = faiss.read_index(f"./{CHECKPOINT_DIR}/faisschunk_{chunk_id}.index")
-            scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-            with open(f"./{CHECKPOINT_DIR}/textbatches_{chunk_id}.pkl", "rb") as f:
-                chunk_texts: list[Document] = pickle.load(f)
-            for score, idx in zip(scores[0], indices[0]):
-                if idx < len(chunk_texts):
-                    all_results.append(chunk_texts[idx])
-                    # all_results.append((score, chunk_texts[idx])) # Tuples list with score
+        for embeddings in EMBEDDINGS:
+            embeddings_chunks = [f for f in os.listdir(embeddings) if f.startswith('faisschunk_') and f.endswith('.index')]
+            n_chunks = len(embeddings_chunks)
+            results_per_chunk = results // n_chunks + 1
+            for chunk_id in range(n_chunks):
+                index = faiss.read_index(f"./{embeddings}/faisschunk_{chunk_id}.index")
+                scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
+                with open(f"./{embeddings}/textbatches_{chunk_id}.pkl", "rb") as f:
+                    chunk_texts: list[Document] = pickle.load(f)
+                for score, idx in zip(scores[0], indices[0]):
+                    if idx < len(chunk_texts):
+                        all_results.append(chunk_texts[idx])
+                        # all_results.append((score, chunk_texts[idx])) # Tuples list with score
         # all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         return all_results
     
