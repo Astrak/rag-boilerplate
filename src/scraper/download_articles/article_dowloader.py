@@ -27,13 +27,13 @@ class ArticleDownloader:
         s3 = boto3.client('s3', region_name="eu-north-1")
         os.makedirs(self.folder, exist_ok=True)
         s3.download_file("rag-faiss-index-bucket", f"{self.folder}url-list.csv", f"{self.folder}url-list.csv")
+
+    def scrape_articles(self) -> list[dict]:
         self.urls: list[str] = []
         with open(f'{self.folder}url-list.csv', 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 self.urls.append(row[0])
-
-    def scrape_articles(self) -> list[dict]:
         print(f"Starting to scrape {len(self.urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_url = {executor.submit(self.scrape_article, url): url for url in self.urls}
