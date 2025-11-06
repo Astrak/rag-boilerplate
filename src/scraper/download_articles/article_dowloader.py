@@ -26,7 +26,7 @@ class ArticleDownloader:
     def sync_urls_from_bucket(self):
         s3 = boto3.client('s3', region_name="eu-north-1")
         os.makedirs(self.folder, exist_ok=True)
-        s3.download_file("rag-faiss-index-bucket", f"{self.folder}url-list.csv", f"{self.folder}url-list.csv")
+        s3.download_file("rag-faiss-index-bucket", f"{self.folder[2:]}url-list.csv", f"{self.folder}url-list.csv")
 
     def scrape_articles(self) -> list[dict]:
         self.urls: list[str] = []
