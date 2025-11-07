@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 import requests
 from bs4 import BeautifulSoup, Tag
 from typing import cast
@@ -34,10 +34,12 @@ class UrlDiscoverer:
                     for link in soup.select(selector):
                         href = cast(str, link.get('href'))
                         if href and self._is_same_domain(href) and not href in discovered_urls: 
+                            href = self._ensure_url_is_absolute(href)
                             discovered_urls.add(href)
                             print(f"{len(discovered_urls)} urls, added: {href}")
                 for link in soup.find_all('a', href=True):
                     href = cast(str, cast(Tag, link).get('href'))
+                    href = self._ensure_url_is_absolute(href)
                     if self._is_same_domain(href):
                         to_visit.add(href)
                 time.sleep(DELAY) 
@@ -48,6 +50,12 @@ class UrlDiscoverer:
             "discovered": list(url for url in discovered_urls if not self._is_url_excluded(url)), 
             "failed": list(to_revisit)
         }
+    
+    def _ensure_url_is_absolute(self, url: str) -> str:
+        is_absolute = bool(urlparse(url).netloc)
+        if not is_absolute:
+            url = urljoin(self.base_url, url)
+        return url
         
     def _is_same_domain(self, url: str) -> bool:
         return urlparse(url).netloc == urlparse(self.base_url).netloc
