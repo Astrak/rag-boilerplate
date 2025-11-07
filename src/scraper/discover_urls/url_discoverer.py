@@ -33,8 +33,8 @@ class UrlDiscoverer:
                 for selector in ['a[href]']:
                     for link in soup.select(selector):
                         href = cast(str, link.get('href'))
-                        if href and self._is_same_domain(href) and not href in discovered_urls: 
-                            href = self._ensure_url_is_absolute(href)
+                        href = self._ensure_url_is_absolute(href)
+                        if href and self._is_same_domain(href) and not href in discovered_urls:
                             discovered_urls.add(href)
                             print(f"{len(discovered_urls)} urls, added: {href}")
                 for link in soup.find_all('a', href=True):
