@@ -11,7 +11,7 @@ if not folders:
     raise EnvironmentError("FOLDERS not found. Run with FOLDERS=folder1,folder2,folder3 ...")
 folders_list = [item.strip() for item in folders.split(",")]
 
-print('Using following knowledge folders for RAG: ' + folders_list)
+print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
 
 fill_env()
 
