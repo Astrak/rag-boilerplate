@@ -7,7 +7,8 @@ import os
 
 folders = os.getenv("FOLDERS")
 if not folders:
-    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=['./my-folder/']")
+    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=folder1,folder2,folder3 ...")
+folders_list = [item.strip() for item in folders.split(",")]
 
 fill_env()
 
