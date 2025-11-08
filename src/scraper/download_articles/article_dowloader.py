@@ -64,7 +64,10 @@ class ArticleDownloader:
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
 
-            title = cast(Tag, soup.select_one('h1.entry-title')).get_text(strip=True)
+            title = None
+            title_elem = cast(Tag, soup.select_one('h1.entry-title'))
+            if title_elem:
+                title = title_elem.get_text(strip=True)
             
             content = None
             content_elem = soup.select_one(self.article_selector)
