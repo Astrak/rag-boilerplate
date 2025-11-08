@@ -63,9 +63,11 @@ class ArticleDownloader:
             response = self.session.get(url, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
+
             title = cast(Tag, soup.select_one('h1.entry-title')).get_text(strip=True)
-            content_elem = soup.select_one(self.article_selector)
+            
             content = None
+            content_elem = soup.select_one(self.article_selector)
             if content_elem:
                 for script in content_elem(["script", "style", "nav", "footer", "iframe"]):
                     script.decompose()
@@ -75,15 +77,22 @@ class ArticleDownloader:
             if not content:
                 print(f"No content found for {url}")
                 return None
-            date = cast(Tag, soup.select_one('.et_pb_title_container .published')).get_text(strip=True)
-            author_element = cast(Tag, soup.select_one('.et_pb_title_container .author'))
+            
+            date = None
+            date_elem = cast(Tag, soup.select_one('.et_pb_title_container .published'))
+            if date_elem:
+                date = date_elem.get_text(strip=True)
+            
             author = None
+            author_element = cast(Tag, soup.select_one('.et_pb_title_container .author'))
             if author_element:
                 author = author_element.get_text(strip=True)
+
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
             if meta_tag:
                 meta_description = cast(Tag, meta_tag).get('content', '')
+                
             article_data = {
                 'url': url,
                 'title': title,
