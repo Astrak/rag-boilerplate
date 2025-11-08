@@ -12,9 +12,10 @@ import gzip
 DELAY = 0.05 # delay to not Ddos the server
 
 class ArticleDownloader:
-    def __init__(self, folder, article_selector):
+    def __init__(self, folder, article_selector, log_articles):
         self.folder = folder
         self.article_selector = article_selector
+        self.log_articles = log_articles
         self.articles: list[dict] = []
         self.scraped_urls: set[str] = set()
         self.failed_urls: set[str] = set()
@@ -69,6 +70,8 @@ class ArticleDownloader:
                 for script in content_elem(["script", "style", "nav", "footer", "iframe"]):
                     script.decompose()
                 content = content_elem.get_text(separator='\n', strip=True)
+                if self.log_articles:
+                    print(content)
             if not content:
                 print(f"No content found for {url}")
                 return None
