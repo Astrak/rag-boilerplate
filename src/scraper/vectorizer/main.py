@@ -1,5 +1,5 @@
 from src.scraper.vectorizer.vectorizer import Vectorizer
-from env import fill_env
+from src.scraper.vectorizer.env import fill_env
 import os
 
 folder = os.getenv("FOLDER")
