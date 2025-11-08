@@ -3,12 +3,17 @@ from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI
 from pydantic import BaseModel
+import os
+
+folders = os.getenv("FOLDERS")
+if not folders:
+    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=['./my-folder/']")
 
 fill_env()
 
 prompt = get_prompt()
 
-graph = Graph(prompt)
+graph = Graph(prompt, folders)
 
 app = FastAPI()
 

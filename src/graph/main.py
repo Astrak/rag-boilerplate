@@ -10,16 +10,15 @@ import faiss
 import pickle
 import numpy as np 
 
-EMBEDDINGS = ["polemia-urls/embeddings", "ojim-urls/embeddings"]
-
 class State(TypedDict):
     question: str
     context: List[Document]
     answer: str
 
 class Graph:
-    def __init__(self, prompt: PromptTemplate):
+    def __init__(self, prompt: PromptTemplate, folders: List[str]):
         self.prompt = prompt
+        self.folders = folders
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
@@ -57,16 +56,16 @@ class Graph:
         return {'answer': response.content}
     
     def search_chunked_system(self, query_embedding, results=10):
-        """Search across all chunks and merge results"""
         all_results: list[Document] = []
-        for embeddings in EMBEDDINGS:
-            embeddings_chunks = [f for f in os.listdir(embeddings) if f.startswith('faisschunk_') and f.endswith('.index')]
+        for folder in self.folders:
+            embeddings_folder = folder + 'embeddings/'
+            embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
             n_chunks = len(embeddings_chunks)
             results_per_chunk = results // n_chunks + 1
             for chunk_id in range(n_chunks):
-                index = faiss.read_index(f"./{embeddings}/faisschunk_{chunk_id}.index")
+                index = faiss.read_index(f"{embeddings_folder}faisschunk_{chunk_id}.index")
                 scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-                with open(f"./{embeddings}/textbatches_{chunk_id}.pkl", "rb") as f:
+                with open(f"{embeddings_folder}textbatches_{chunk_id}.pkl", "rb") as f:
                     chunk_texts: list[Document] = pickle.load(f)
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(chunk_texts):

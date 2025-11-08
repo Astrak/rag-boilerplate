@@ -6,11 +6,15 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 import re
 
+folders = os.getenv("FOLDERS")
+if not folders:
+    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=['./my-folder/']")
+
 fill_env()
 
 prompt = get_prompt()
 
-graph = Graph(prompt)
+graph = Graph(prompt, folders)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"👋 Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia.\n\n📑 Je réalise des courtes notes sur vos questions de société. Chaque question est traitée séparément.\n\n👉 Qu'est-ce qui vous intéresse ?") # type: ignore
