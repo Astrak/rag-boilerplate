@@ -70,7 +70,7 @@ class ArticleDownloader:
                 for script in content_elem(["script", "style", "nav", "footer", "iframe"]):
                     script.decompose()
                 content = content_elem.get_text(separator='\n', strip=True)
-                if self.log_articles:
+                if self.log_articles == 'true':
                     print(content)
             if not content:
                 print(f"No content found for {url}")
