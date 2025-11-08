@@ -14,7 +14,7 @@ fill_env()
 
 prompt = get_prompt()
 
-graph = Graph(prompt, folders)
+graph = Graph(prompt, folders_list)
 
 app = FastAPI()
 
