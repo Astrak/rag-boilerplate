@@ -31,8 +31,8 @@ class Graph:
         question_embeddings = response.data[0].embedding
         print('Successfully generated embeddings for question')
         matching_documents = self.search_chunked_system(question_embeddings)
-        print('Found matching documents')
-        print(matching_documents)
+        for entry in matching_documents:
+            print(entry[0], entry[1].metadata['source'])
         return {"context": matching_documents}
 
     def generate(self, state: State):
@@ -55,7 +55,7 @@ class Graph:
         print(f"\nRéponse :\n\n{response.content}")
         return {'answer': response.content}
     
-    def search_chunked_system(self, query_embedding, results=10):
+    def search_chunked_system(self, query_embedding, results=10) -> List[(float,Document)]:
         all_results: list[Document] = []
         for folder in self.folders:
             embeddings_folder = folder + 'embeddings/'
@@ -69,9 +69,10 @@ class Graph:
                     chunk_texts: list[Document] = pickle.load(f)
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(chunk_texts):
-                        all_results.append(chunk_texts[idx])
-                        # all_results.append((score, chunk_texts[idx])) # Tuples list with score
-        # all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
+                        all_results.append((score, chunk_texts[idx]))
+        print('Found matching documents')
+        print(all_results)
+        all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         return all_results
     
     def invoke(self, text):
