@@ -31,9 +31,7 @@ class Graph:
         question_embeddings = response.data[0].embedding
         print('Successfully generated embeddings for question')
         matching_documents = self.search_chunked_system(question_embeddings)
-        for entry in matching_documents:
-            print(entry[0], entry[1].metadata['source'])
-        return {"context": [item[1] for item in matching_documents]}
+        return {"context": matching_documents}
 
     def generate(self, state: State):
         print('############')
@@ -43,7 +41,6 @@ class Graph:
         print(f'Received question: {state["question"]}')
         contents: list[str] = []
         for doc in state['context']:
-            print(doc.metadata['source'])
             contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         print(f'Found {len(contents)} matching documents:')
         docs_content = "\n\n".join(contents)
@@ -55,13 +52,13 @@ class Graph:
         print(f"\nRéponse :\n\n{response.content}")
         return {'answer': response.content}
     
-    def search_chunked_system(self, query_embedding, results=10):
+    def search_chunked_system(self, query_embedding):
         all_results: list[Document] = []
         for folder in self.folders:
             embeddings_folder = folder + 'embeddings/'
             embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
             n_chunks = len(embeddings_chunks)
-            results_per_chunk = results // n_chunks + 1
+            results_per_chunk = 8 // n_chunks + 1 # Gather 8 results per source.
             for chunk_id in range(n_chunks):
                 index = faiss.read_index(f"{embeddings_folder}faisschunk_{chunk_id}.index")
                 scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
@@ -70,10 +67,13 @@ class Graph:
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(chunk_texts):
                         all_results.append((score, chunk_texts[idx]))
-        print('Found matching documents')
-        print(all_results)
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
-        return all_results
+        for result in all_results:
+            print(result[0], result[1].metadata['source'])
+        half_index = len(all_results) // 2
+        first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
+        relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
+        return [item[1] for item in relevancy_culled_list] 
     
     def invoke(self, text):
         return self.graph.invoke({"question": text}) # type: ignore
