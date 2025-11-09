@@ -55,7 +55,7 @@ class Graph:
         print(f"\nRéponse :\n\n{response.content}")
         return {'answer': response.content}
     
-    def search_chunked_system(self, query_embedding, results=10) -> List[(float,Document)]:
+    def search_chunked_system(self, query_embedding, results=10):
         all_results: list[Document] = []
         for folder in self.folders:
             embeddings_folder = folder + 'embeddings/'
