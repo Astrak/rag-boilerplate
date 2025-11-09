@@ -33,7 +33,7 @@ class Graph:
         matching_documents = self.search_chunked_system(question_embeddings)
         for entry in matching_documents:
             print(entry[0], entry[1].metadata['source'])
-        return {"context": matching_documents}
+        return {"context": [item[1] for item in matching_documents]}
 
     def generate(self, state: State):
         print('############')
