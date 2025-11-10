@@ -1,52 +1,23 @@
 import os
-from prompt import get_prompt
-from env import fill_env
-from graph import Graph
+from apps.telegram.prompt import get_prompt
+from apps.telegram.env import fill_env
+from graph.main import Graph
 from telegram import Update
-from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
-from scraper import ArticleScraper
-from vector_store import get_store
-import csv
-import boto3
-import asyncio
 import re
+
+folders = os.getenv("FOLDERS")
+if not folders:
+    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=folder1,folder2,folder3 ...")
+folders_list = [item.strip() for item in folders.split(",")]
+
+print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
 
 fill_env()
 
-s3 = boto3.client('s3', region_name="eu-north-1")
-os.makedirs("./polemia-urls/", exist_ok=True)
-s3.download_file("rag-faiss-index-bucket", "polemia-urls/url-list.csv", "./polemia-urls/url-list.csv")
-lines: list[str] = []
-with open('./polemia-urls/url-list.csv', 'r', encoding='utf-8') as file:
-    csv_reader = csv.reader(file)
-    for row in csv_reader:
-        lines.append(row[0])
-EXCLUDED_PATHS = ['/mot-clef/', '/page/', '/author/']
-scraper = ArticleScraper(base_url="https://www.polemia.com", excluded_paths=EXCLUDED_PATHS)
-# articles = scraper.scrape_articles(lines)
-# scraper.create_embeddings_with_checkpoint()
-# scraper.create_chunked_faiss_system()
-# store = scraper.create_vector_store()
-
-
-# app = FastAPI()
-
-# class SearchRequest(BaseModel):
-#     question: str
-
-# @app.post("/search")
-# def search(request: SearchRequest):
-#     print('search request received: ' + request.question)
-#     result = graph.invoke({"question": request.question})  # pyright: ignore[reportArgumentType]
-#     print('similarity search finished')
-#     return {"results": result['answer']}
-
-##### Telegram bot
-
 prompt = get_prompt()
 
-graph = Graph(prompt)
+graph = Graph(prompt, folders_list)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"👋 Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia.\n\n📑 Je réalise des courtes notes sur vos questions de société. Chaque question est traitée séparément.\n\n👉 Qu'est-ce qui vous intéresse ?") # type: ignore
