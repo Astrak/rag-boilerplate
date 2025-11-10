@@ -62,6 +62,8 @@ Clear the following:
 
 The scraper is not entirely automatized so one can vet if the data is correctly picked from the targeted website.
 
+It is built to have an associated S3 bucket storing the url lists.
+
 The user must separately:
 
 - discover valid article urls of the target,
@@ -71,10 +73,9 @@ The user must separately:
 ### Discover URLs for a given website
 
 Use the `UrlDiscoverer` and wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
-Before launching it, check the file itself to modify `BASE_URL` and `EXCLUDED_PATHS`:
 
 ```bash
-python3 -m scraper.discover_urls.main > scraped_urls.csv
+BASE_URL='https://mywebsite.com' python3 -m scraper.discover_urls.main > scraped_urls.csv
 ```
 
 Then double check scraped_urls.csv, and make sure to review the following:
@@ -90,16 +91,14 @@ Store this file preciously. When updating the data, the easiest will be to appen
 
 Use the `ArticleDiscoverer` and wait for it to complete.
 
-Before launching, check the file itself to modify `FOLDER` and `ARTICLE_SELECTOR`.
-
-Check the class itself and how title, content and other metadata are picked on the web pages and modify to fit the targeted website.
-
-Then the script should take a few minutes to read a few thousands of webpages.
-
 The result is a file `scraped-articles.pkl.gz` in the relative path assigned in `FOLDER`.
 
+Before starting, make sure that the title selector is correct and the metadata selectors too.
+
+Turn on and off `LOG_ARTICLES` to log what the saved articles actually look like.
+
 ```bash
-python3 -m scraper.download_articles.main
+FOLDER='./my-folder/' ARTICLE_SELECTOR='#article-content' LOG_ARTICLES='true' python3 -m scraper.download_articles.main
 ```
 
 ### Vectorize
@@ -107,5 +106,5 @@ python3 -m scraper.download_articles.main
 Use the `Vectorizer` and wait for it to complete. It takes a few minutes. Make sure the `FOLDER` in the `main.py` file is what you expect.
 
 ```bash
-python3 -m scraper.vectorizer.main
+FOLDER='./my-folder/' python3 -m scraper.vectorizer.main
 ```
