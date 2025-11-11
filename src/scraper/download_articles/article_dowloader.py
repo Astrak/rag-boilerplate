@@ -68,6 +68,8 @@ class ArticleDownloader:
             title_elem = cast(Tag, soup.select_one('h1.entry-title'))
             if title_elem:
                 title = title_elem.get_text(strip=True)
+            if not title:
+                print(f"No title found for {url}")
             
             content = None
             content_elem = soup.select_one(self.article_selector)
@@ -78,7 +80,7 @@ class ArticleDownloader:
                 if self.log_articles == 'true':
                     print(content)
             if not content:
-                print(f"No content found for {url}")
+                print(f"No content found for {url} with selector: {self.article_selector}")
                 return None
             
             date = None
