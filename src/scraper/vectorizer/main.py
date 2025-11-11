@@ -10,6 +10,10 @@ fill_env()
 
 CHECKPOINT_DIR = folder + 'embeddings'
 
-vectorizer = Vectorizer(folder, checkpoint_dir=CHECKPOINT_DIR)
-vectorizer.create_embeddings_with_checkpoint()
-vectorizer.create_chunked_faiss_system()
+def main():
+    vectorizer = Vectorizer(folder, checkpoint_dir=CHECKPOINT_DIR)
+    vectorizer.create_embeddings_with_checkpoint()
+    vectorizer.create_chunked_faiss_system()
+
+if __name__ == "__main__":
+    main()

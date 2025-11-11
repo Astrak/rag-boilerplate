@@ -7,5 +7,9 @@ if not base_url:
 
 EXCLUDED_PATHS = []
 
-discoverer = UrlDiscoverer(base_url, excluded_paths=EXCLUDED_PATHS)
-discoverer.discover_urls()
+def main():
+    discoverer = UrlDiscoverer(base_url, excluded_paths=EXCLUDED_PATHS)
+    discoverer.discover_urls()
+
+if __name__ == "__main__":
+    main()
