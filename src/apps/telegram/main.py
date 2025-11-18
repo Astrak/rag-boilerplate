@@ -30,8 +30,10 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         existing_session = sessions.get(session_id)
         if not existing_session:
             result = graph.invoke(update.message.text)
-            sessions[session_id] = [update.message.text, result]
-            await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
+            sessions[session_id] = [update.message.text, result['answer']]
+            print('##### RESULTAT :')
+            print(result['answer'])
+            await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
         else:
             # need_new_retrieval = graph.evaluate(existing_session)
             # if not need_new_retrieval:
@@ -39,8 +41,10 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             #     return
             # else:
             result = graph.invoke("\n\n".join(existing_session) + update.message.text)
-            sessions[session_id].extend([update.message.text, result])
-            await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
+            sessions[session_id].extend([update.message.text, result['answer']])
+            print('##### RESULTAT :')
+            print(result['answer'])
+            await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
 
         #### Non-conversational with smileys #####
         # paragraphs = result['answer'].split('\n\n')
