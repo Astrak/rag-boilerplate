@@ -40,7 +40,11 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             #     # pass to AI
             #     return
             # else:
-            result = graph.invoke("\n\n".join(existing_session) + update.message.text)
+            discussion = "\n\n".join(existing_session) + update.message.text
+            print("##### DISCUSSION COMPLETE")
+            print(discussion)
+            print('#####')
+            result = graph.invoke(discussion)
             sessions[session_id].extend([update.message.text, result['answer']])
             print('##### RESULTAT :')
             print(result['answer'])
