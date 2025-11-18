@@ -14,6 +14,7 @@ import numpy as np
 
 class State(TypedDict):
     question: str
+    discussion: str
     context: List[Document]
     answer: str
 
@@ -25,15 +26,6 @@ class Graph:
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
-
-    def evaluate(self, conversation: str, question: str):
-        return True
-        # needs_retrieval = PromptTemplate.from_template("Problem: I have implemented a RAG solution. In this conversation, " +
-        #     "documents have already been retrieved for the CONVERSATION. A new QUESTION has been asked by the user. " +
-        #     "I would like you to guess whether it seems to require further information, or if he's just"
-        # """CONVERSATION: {conversation} 
-        # QUESTION: {question} 
-        # ANSWER (just say yes/no)?:""").invoke({"conversation": conversation, "question": question})
 
     def retrieve(self, state: State):
         print(f'Received question: {state["question"]}')
@@ -55,7 +47,7 @@ class Graph:
             contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         print(f'Found {len(contents)} matching documents:')
         docs_content = "\n\n".join(contents)
-        messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
+        messages = self.prompt.invoke({"question": state["question"], "context": docs_content, "discussion": state["discussion"]})
         start_time = time.time()
         response = self.llm.invoke(messages)
         delay = time.time() - start_time
@@ -86,5 +78,5 @@ class Graph:
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
         return [item[1] for item in relevancy_culled_list] 
     
-    def invoke(self, text):
-        return self.graph.invoke({"question": text}) # type: ignore
+    def invoke(self, question, discussion = ""):
+        return self.graph.invoke({"question": question, "discussion": discussion}) # type: ignore

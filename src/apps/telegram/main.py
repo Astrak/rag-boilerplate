@@ -31,31 +31,15 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not existing_session:
             result = graph.invoke(update.message.text)
             sessions[session_id] = [update.message.text, result['answer']]
-            print('##### RESULTAT :')
-            print(result['answer'])
             await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
         else:
-            # need_new_retrieval = graph.evaluate(existing_session)
-            # if not need_new_retrieval:
-            #     # pass to AI
-            #     return
-            # else:
             discussion = "\n\n".join(existing_session) + update.message.text
             print("##### DISCUSSION COMPLETE")
             print(discussion)
             print('#####')
-            result = graph.invoke(discussion)
+            result = graph.invoke(update.message.text, "\n\n".join(existing_session))
             sessions[session_id].extend([update.message.text, result['answer']])
-            print('##### RESULTAT :')
-            print(result['answer'])
             await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
-
-        #### Non-conversational with smileys #####
-        # paragraphs = result['answer'].split('\n\n')
-        # if len(paragraphs) > 1:
-        #     paragraphs[0] = '📝 ' + paragraphs[0]
-        # result_with_smileys = re.sub(r'^- ', '👉 ', '\n\n'.join(paragraphs), flags=re.MULTILINE)
-        # await update.message.reply_text(result_with_smileys, parse_mode="HTML", disable_web_page_preview=True) 
     except Exception as e:
         print(e)
 
