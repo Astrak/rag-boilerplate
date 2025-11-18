@@ -10,6 +10,8 @@ import faiss
 import pickle
 import numpy as np 
 
+
+
 class State(TypedDict):
     question: str
     context: List[Document]
@@ -23,6 +25,15 @@ class Graph:
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
+
+    def evaluate(self, conversation: str, question: str):
+        return True
+        # needs_retrieval = PromptTemplate.from_template("Problem: I have implemented a RAG solution. In this conversation, " +
+        #     "documents have already been retrieved for the CONVERSATION. A new QUESTION has been asked by the user. " +
+        #     "I would like you to guess whether it seems to require further information, or if he's just"
+        # """CONVERSATION: {conversation} 
+        # QUESTION: {question} 
+        # ANSWER (just say yes/no)?:""").invoke({"conversation": conversation, "question": question})
 
     def retrieve(self, state: State):
         print(f'Received question: {state["question"]}')

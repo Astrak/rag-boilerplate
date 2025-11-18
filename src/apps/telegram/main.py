@@ -19,17 +19,35 @@ prompt = get_prompt()
 
 graph = Graph(prompt, folders_list)
 
+sessions = {}
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"👋 Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia.\n\n📑 Je réalise des courtes notes sur vos questions de société. Chaque question est traitée séparément.\n\n👉 Qu'est-ce qui vous intéresse ?") # type: ignore
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        result = graph.invoke(update.message.text)
-        paragraphs = result['answer'].split('\n\n')
-        if len(paragraphs) > 1:
-            paragraphs[0] = '📝 ' + paragraphs[0]
-        result_with_smileys = re.sub(r'^- ', '👉 ', '\n\n'.join(paragraphs), flags=re.MULTILINE)
-        await update.message.reply_text(result_with_smileys, parse_mode="HTML", disable_web_page_preview=True) # type: ignore
+        session_id = update.message.from_user.id
+        existing_session = sessions.get(session_id)
+        if not existing_session:
+            result = graph.invoke(update.message.text)
+            sessions[session_id] = [update.message.text, result]
+            await update.message.reply_text(result)
+        else:
+            # need_new_retrieval = graph.evaluate(existing_session)
+            # if not need_new_retrieval:
+            #     # pass to AI
+            #     return
+            # else:
+            result = graph.invoke("\n\n".join(existing_session) + update.message.text)
+            sessions[session_id].extend([update.message.text, result])
+            await update.message.reply_text(result)
+
+        #### Non-conversational with smileys #####
+        # paragraphs = result['answer'].split('\n\n')
+        # if len(paragraphs) > 1:
+        #     paragraphs[0] = '📝 ' + paragraphs[0]
+        # result_with_smileys = re.sub(r'^- ', '👉 ', '\n\n'.join(paragraphs), flags=re.MULTILINE)
+        # await update.message.reply_text(result_with_smileys, parse_mode="HTML", disable_web_page_preview=True) 
     except Exception as e:
         print(e)
 
