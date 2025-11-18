@@ -40,6 +40,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # else:
             result = graph.invoke("\n\n".join(existing_session) + update.message.text)
             sessions[session_id].extend([update.message.text, result])
+            print('##### RESULTAT :')
+            print(result)
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
 
         #### Non-conversational with smileys #####
