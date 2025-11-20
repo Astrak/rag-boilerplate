@@ -42,18 +42,18 @@ class Graph:
         print('############')
         print('############')
         print(f'Received question: {state["question"]}')
-        contents: list[str] = []
+        context: list[str] = []
         for doc in state['context']:
-            contents.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        print(f'Found {len(contents)} matching documents:')
-        docs_content = "\n\n".join(contents)
-        messages = self.prompt.invoke({"question": state["question"], "context": docs_content, "discussion": state["discussion"]})
+            context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
+        print(f'Found {len(context)} matching documents:')
+        str_context = "\n\n".join(context)
+        messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
         response = self.llm.invoke(messages)
         delay = time.time() - start_time
         print("LLM answered in %ssec:" % delay)
         print(f"\nRéponse :\n\n{response.content}")
-        return {'answer': response.content}
+        return {'answer': response.content, 'context': context}
     
     def search_chunked_system(self, query_embedding):
         all_results: list[Document] = []
