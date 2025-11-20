@@ -49,12 +49,15 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = ""
             if needs_rag:
                 print('Run rag')
-                result = graph.invoke(update.message.text)
+                answer = graph.invoke(update.message.text)
+                result = answer['answer']
+                sessions[session_id] = {'context': answer['context'], 'discussion': [update.message.text, result]}
             else:
                 print('Run LLM without RAG')
-                result = llm.invoke("Tu es maintenant PolemIA, une IA créée par Polemia, agissant comme chatbot pour les visiteurs de Polémia (polemia.com et archives.polemia.com), l'Iliade (institut-iliade.com), l'Observatoire de l'Immigration et de la Démographie (OID, observatoire-immigration.fr), l'Observatoire des Décisions de Justice (ODJ, observatoire-justice.fr), Marc Vanguard (marc-vanguard.com) et l'OJIM (ojim.fr), think-tanks français fournissant en essais et rapports les élites françaises. Voici le premier message d'un utilisateur qui te découvre. Réponds-lui qui tu es et dis-lui qu'il peut poser des questions précises sur les sujets que traite PolemIA. Réponds lui dans la langue de la question, en complétant sa discussion. Voici son message: " + update.message.text)
-            print(result['answer'])
-            sessions[session_id] = {'context': result['context'], 'discussion': [update.message.text, result]}
+                answer = llm.invoke("Tu es maintenant PolemIA, une IA créée par Polemia, agissant comme chatbot pour les visiteurs de Polémia (polemia.com et archives.polemia.com), l'Iliade (institut-iliade.com), l'Observatoire de l'Immigration et de la Démographie (OID, observatoire-immigration.fr), l'Observatoire des Décisions de Justice (ODJ, observatoire-justice.fr), Marc Vanguard (marc-vanguard.com) et l'OJIM (ojim.fr), think-tanks français fournissant en essais et rapports les élites françaises. Voici le premier message d'un utilisateur qui te découvre. Réponds-lui qui tu es et dis-lui qu'il peut poser des questions précises sur les sujets que traite PolemIA. Réponds lui dans la langue de la question, en complétant sa discussion. Voici son message: " + update.message.text)
+                result = answer['content']
+                sessions[session_id] = {'context': [], 'discussion': [update.message.text, result]}
+            print(result)
             await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
         else:
             # implement flow: use graph or just chat?
