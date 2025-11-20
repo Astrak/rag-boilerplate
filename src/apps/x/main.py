@@ -32,6 +32,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session_id = update.message.from_user.id
         existing_session = sessions.get(session_id)
         if not existing_session:
+            print('New convo:')
+            print(update.message.text)
             yes_no_prompt = PromptTemplate.from_template(
                     """Consigne : Tu es un assistant qui répond uniquement par "oui" ou "non". Pas d'explication, pas d'autre mot, pas de ponctuation, pas de lettres majuscules. Voici le premier message d'un utilisateur d'un assistant IA qui utilise la méthode RAG. Tu dois déterminer si ce message nécessite du RAG, c'est-à-dire de faire une recherche de contexte préalable parmi les documents disponibles de l'assistant, ou si l'utilisateur souhaite juste bavarder et avoir une conversation sans demande de connaissances particulières. S'il y a besoin de trouver des documents spécifiques, réponds "oui", mais s'il souhaite juste avoir une conversation générale, réponds "non".
                 
@@ -41,13 +43,17 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             question = yes_no_prompt.invoke({"message": update.message.text})
             answer = llm.invoke(question)
+            print("Requires RAG?: ")
             print(answer.content)
             needs_rag = answer.content == "oui"
             result = ""
             if needs_rag:
+                print('Run rag')
                 result = graph.invoke(update.message.text)
             else:
+                print('Run LLM without RAG')
                 result = llm.invoke("Tu es maintenant PolemIA, une IA créée par Polemia, agissant comme chatbot pour les visiteurs de Polémia (polemia.com et archives.polemia.com), l'Iliade (institut-iliade.com), l'Observatoire de l'Immigration et de la Démographie (OID, observatoire-immigration.fr), l'Observatoire des Décisions de Justice (ODJ, observatoire-justice.fr), Marc Vanguard (marc-vanguard.com) et l'OJIM (ojim.fr), think-tanks français fournissant en essais et rapports les élites françaises. Voici le premier message d'un utilisateur qui te découvre. Réponds-lui qui tu es et dis-lui qu'il peut poser des questions précises sur les sujets que traite PolemIA. Réponds lui dans la langue de la question, en complétant sa discussion. Voici son message: " + update.message.text)
+            print(result['answer'])
             sessions[session_id] = {'context': result['context'], 'discussion': [update.message.text, result]}
             await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
         else:
