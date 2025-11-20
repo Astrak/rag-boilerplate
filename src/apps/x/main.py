@@ -41,6 +41,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             question = yes_no_prompt.invoke({"message": update.message.text})
             answer = llm.invoke(question)
+            print(answer.content)
             needs_rag = answer.content == "oui"
             result = ""
             if needs_rag:
