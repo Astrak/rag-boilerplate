@@ -58,8 +58,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 print(answer.content)
                 result = answer.content.strip()
                 sessions[session_id] = {'context': [], 'discussion': [update.message.text, result]}
-            print('Answer to send:')
-            print(result)
+            print(sessions[session_id])
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
         else:
             # implement flow: use graph or just chat?
