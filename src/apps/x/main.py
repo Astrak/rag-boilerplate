@@ -31,7 +31,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         session_id = update.message.from_user.id
         existing_session = sessions.get(session_id)
-        print(sessions[session_id])
+        print(str(sessions[session_id]))
         if not existing_session:
             print('New convo:')
             print(update.message.text)
