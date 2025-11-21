@@ -34,14 +34,14 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not existing_session:
             print('New convo:')
             print(update.message.text)
-            yes_no_prompt = PromptTemplate.from_template(
+            needs_rag_yes_no_prompt = PromptTemplate.from_template(
                     """Consigne : Tu es un assistant qui répond uniquement par "oui" ou "non". Pas d'explication, pas d'autre mot, pas de ponctuation, pas de lettres majuscules. Voici le premier message d'un utilisateur d'un assistant IA qui utilise la méthode RAG. Tu dois déterminer si ce message nécessite du RAG, c'est-à-dire de faire une recherche de contexte préalable parmi les documents disponibles de l'assistant, ou si l'utilisateur souhaite juste bavarder et avoir une conversation sans demande de connaissances particulières. S'il y a besoin de trouver des documents spécifiques, réponds "oui", mais s'il souhaite juste avoir une conversation générale, réponds "non".
                 
-                Message : {message}
+                    Message : {message}
 
-                Réponse :"""
-                )
-            question = yes_no_prompt.invoke({"message": update.message.text})
+                    Réponse :"""
+                    )
+            question = needs_rag_yes_no_prompt.invoke({"message": update.message.text})
             answer = llm.invoke(question)
             print("Requires RAG?: ")
             print(answer.content)
@@ -60,13 +60,40 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 sessions[session_id] = {'context': [], 'discussion': [update.message.text, result]}
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
         else:
-            yes_no_prompt = PromptTemplate.from_template("""Écrire ici consigne : tchat simple, ou besoin d'un RAG""")
-            # question = yes_no_prompt.invoke({"message": update.message.text})
-            # answer = llm.invoke(question)
-            discussion = "\n\n".join(existing_session) + update.message.text
-            print("##### DISCUSSION COMPLETE")
-            print(discussion)
-            print('#####')
+            discussion = sessions[session_id]['discussion']
+            print('Answering to existing convo: ')
+            print("\n\n".join(discussion))
+            needs_new_rag_yes_no_prompt = PromptTemplate.from_template(
+                    """Consigne : Tu dois aider un assistant IA avec RAG sur les questions de politique française liées à la gouvernance et à l'immigration, en répondant uniquement par "oui" ou "non" pour déterminer si un nouveau RAG doit être effectué pour répondre aux questions utilisateur. Pas d'explication, pas d'autre mot, pas de ponctuation, pas de lettre majuscule. Voici le nouveau MESSAGE d'un utilisateur. Il est intégré dans une DISCUSSION, et un CONTEXTE de documents RAG déjà compilés. À partir de ces éléments, tu dois déterminer si la réponse que l'assistant devra apporter à ce MESSAGE nécessite des précisions qui n'existent pas dans le CONTEXTE indiqué : dans ce cas, réponds 'oui'. Mais si l'utilisateur souhaite juste bavarder et avoir une conversation sans demande de nouvelles connaissances particulières, ou que la réponse peut être trouvée dans les document existants : réponds 'non'. 
+                
+                    MESSAGE : 
+                    {message}
+
+                    DISCUSSION : 
+                    {discussion}
+
+                    CONTEXTE : 
+                    {context}
+
+                    Réponse :""")
+            question = needs_new_rag_yes_no_prompt.invoke({"message": update.message.text, "discussion": "\n\n".join(discussion), "context": "\n\n".join(sessions[session_id]['context'])})
+            answer = llm.invoke(question)
+            print("Requires RAG?: ")
+            print(answer.content)
+            needs_rag = answer.content == "oui"
+            result = ""
+            if needs_rag:
+                print('Run rag')
+                answer = graph.invoke(update.message.text)
+                result = answer['answer'].strip()
+                sessions[session_id] = {'context': sessions[session_id]['context'].extend(answer['context']), 'discussion': [update.message.text, result]}
+            else:
+                print('Run LLM without RAG')
+                question = prompt.invoke({"message": update.message.text, "discussion": "\n\n".join(discussion), "context": "\n\n".join(sessions[session_id]['context'])})
+                answer = llm.invoke(question)
+                print(answer.content)
+                result = answer.content.strip()
+                sessions[session_id] = {'context': [], 'discussion': [update.message.text, result]}
             result = graph.invoke(update.message.text, "\n\n".join(existing_session))
             sessions[session_id].extend([update.message.text, result['answer']])
             await update.message.reply_text(result['answer'], parse_mode="HTML", disable_web_page_preview=True)
