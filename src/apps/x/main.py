@@ -31,7 +31,6 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         session_id = update.message.from_user.id
         existing_session = sessions.get(session_id)
-        print(str(sessions[session_id]))
         if not existing_session:
             print('New convo:')
             print(update.message.text)
@@ -77,8 +76,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                     Réponse :""")
             question = needs_new_rag_yes_no_prompt.invoke({"message": update.message.text, "discussion": "\n\n".join(discussion), "context": "\n\n".join(sessions[session_id]['context'])})
-            answer = llm.invoke(question)
             print("Requires RAG?: ")
+            answer = llm.invoke(question)
             print(answer.content)
             needs_rag = answer.content == "oui"
             result = ""
