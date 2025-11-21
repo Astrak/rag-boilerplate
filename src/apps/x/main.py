@@ -96,7 +96,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 print(result)
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
     except Exception as e:
-        print(e)
+        print('Exception: ' + str(e))
 
 def main():
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
