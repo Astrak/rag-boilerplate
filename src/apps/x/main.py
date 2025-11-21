@@ -94,7 +94,6 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 print(answer.content)
                 result = answer.content.strip()
                 sessions[session_id] = {'context': sessions[session_id]['context'], 'discussion': sessions[session_id]['discussion'].extend([update.message.text, result])}
-            result = graph.invoke(update.message.text, "\n\n".join(existing_session))
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
     except Exception as e:
         print(e)
