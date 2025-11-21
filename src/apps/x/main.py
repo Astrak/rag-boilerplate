@@ -60,8 +60,9 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 sessions[session_id] = {'context': [], 'discussion': [update.message.text, result]}
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
         else:
-            # implement flow: use graph or just chat?
-            # implement flow: reuse context or retrieve new?
+            yes_no_prompt = PromptTemplate.from_template("""Écrire ici consigne : tchat simple, ou besoin d'un RAG""")
+            # question = yes_no_prompt.invoke({"message": update.message.text})
+            # answer = llm.invoke(question)
             discussion = "\n\n".join(existing_session) + update.message.text
             print("##### DISCUSSION COMPLETE")
             print(discussion)
