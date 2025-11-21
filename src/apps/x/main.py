@@ -75,7 +75,11 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     {context}
 
                     Réponse :""")
-            question = needs_new_rag_yes_no_prompt.invoke({"message": update.message.text, "discussion": "\n\n".join(discussion), "context": "\n\n".join(sessions[session_id]['context'])})
+            joined_discussion = "\n\n".join(discussion)
+            print("discussion joining ok")
+            joined_context = "\n\n".join(sessions[session_id]['context'])
+            print('context joining ok')
+            question = needs_new_rag_yes_no_prompt.invoke({"message": update.message.text, "discussion": joined_discussion, "context": joined_context})
             print("Requires RAG?: ")
             answer = llm.invoke(question)
             print(answer.content)
