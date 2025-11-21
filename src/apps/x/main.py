@@ -31,6 +31,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         session_id = update.message.from_user.id
         existing_session = sessions.get(session_id)
+        print(sessions[session_id])
         if not existing_session:
             print('New convo:')
             print(update.message.text)
@@ -85,14 +86,14 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 print('Run rag')
                 answer = graph.invoke(update.message.text)
                 result = answer['answer'].strip()
-                sessions[session_id] = {'context': sessions[session_id]['context'].extend(answer['context']), 'discussion': sessions[session_id]['discussion'].extend([update.message.text, result])}
+                sessions[session_id] = {'context': answer['context'], 'discussion': sessions[session_id]['discussion'].extend([update.message.text, result])}
             else:
                 print('Run LLM without RAG')
                 question = prompt.invoke({"question": update.message.text, "discussion": "\n\n".join(discussion), "context": "\n\n".join(sessions[session_id]['context'])})
                 answer = llm.invoke(question)
-                print(answer.content)
                 result = answer.content.strip()
                 sessions[session_id] = {'context': sessions[session_id]['context'], 'discussion': sessions[session_id]['discussion'].extend([update.message.text, result])}
+                print(result)
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
     except Exception as e:
         print(e)
