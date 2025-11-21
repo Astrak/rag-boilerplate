@@ -61,9 +61,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
         else:
             discussion = sessions[session_id]['discussion']
-            print('Answering to existing convo: ')
-            print(discussion)
-            print("\n\n".join(discussion))
+            print('Answering to existing convo')
             needs_new_rag_yes_no_prompt = PromptTemplate.from_template(
                     """Consigne : Tu dois aider un assistant IA avec RAG sur les questions de politique française liées à la gouvernance et à l'immigration, en répondant uniquement par "oui" ou "non" pour déterminer si un nouveau RAG doit être effectué pour répondre aux questions utilisateur. Pas d'explication, pas d'autre mot, pas de ponctuation, pas de lettre majuscule. Voici le nouveau MESSAGE d'un utilisateur. Il est intégré dans une DISCUSSION, et un CONTEXTE de documents RAG déjà compilés. À partir de ces éléments, tu dois déterminer si la réponse que l'assistant devra apporter à ce MESSAGE nécessite des précisions qui n'existent pas dans le CONTEXTE indiqué : dans ce cas, réponds 'oui'. Mais si l'utilisateur souhaite juste bavarder et avoir une conversation sans demande de nouvelles connaissances particulières, ou que la réponse peut être trouvée dans les document existants : réponds 'non'. 
                 
