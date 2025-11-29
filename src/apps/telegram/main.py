@@ -20,7 +20,7 @@ prompt = get_prompt()
 
 graph = Graph(prompt, folders_list)
 
-llm = init_chat_model("grok-3-mini", model_provider="xai", temperature=0.1)
+llm = init_chat_model("grok-4", model_provider="xai", temperature=0.1)
 
 sessions = {}
 
