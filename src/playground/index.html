@@ -13,12 +13,13 @@
         const input = document.getElementById('question');
         const answer = document.getElementById('answer');
         button.addEventListener('click', async e=>{
-            const answer = await fetch('http://16.171.231.107:8000/analyze', { 
+            const response = await fetch('http://16.171.231.107:8000/analyze', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ question: input.value})
             })
-            textarea.innerHTML = answer.json()
+            const json = await response.json();
+            answer.innerHTML = json.results.split('\n').join('<br><br>') 
         })
     </script>
 </body>

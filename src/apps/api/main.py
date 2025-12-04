@@ -52,4 +52,4 @@ def search(request: SearchRequest):
     print('analyze request received: ' + request.question)
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
-    return {"results": result['answer']}
+    return {"results": result['answer'], "context": result['context']}
