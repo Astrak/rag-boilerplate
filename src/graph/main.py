@@ -29,7 +29,7 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
-        self.llm = init_chat_model("grok-4", model_provider="xai", temperature=0.1)
+        self.llm = init_chat_model("grok-3-mini", model_provider="xai", temperature=0.1)
 
     def retrieve(self, state: State):
         print(f'Received question: {state["question"]}')
