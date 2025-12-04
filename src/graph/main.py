@@ -10,17 +10,16 @@ import faiss
 import pickle
 import numpy as np 
 
-
+class Resource(TypedDict):
+    url: str
+    title: str
 
 class State(TypedDict):
     question: str
     discussion: str
     context: List[Document]
     answer: str
-
-class Resource(TypedDict):
-    url: str
-    title: str
+    resources: List[Resource]
 
 class Graph:
     def __init__(self, prompt: PromptTemplate, folders: List[str]):
@@ -47,7 +46,9 @@ class Graph:
         print('############')
         print(f'Received question: {state["question"]}')
         context: list[str] = []
+        resources: list[Resource] = []
         for doc in state['context']:
+            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         print(f'Found {len(context)} matching documents:')
         str_context = "\n\n".join(context)
@@ -57,7 +58,7 @@ class Graph:
         delay = time.time() - start_time
         print("LLM answered in %ssec:" % delay)
         print(f"\nRéponse :\n\n{response.content}")
-        return {'answer': response.content, 'context': context  }
+        return {'answer': response.content, 'context': context, 'resources': resources }
     
     def search_chunked_system(self, query_embedding):
         all_results: list[Document] = []
