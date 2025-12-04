@@ -26,6 +26,7 @@ The environment requires the following keys:
 - `OPENAI_API_KEY`
 - `LANGSMITH_API_KEY`
 - `GOOGLE_API_KEY`
+- `XAI_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 
 To start the telegram bot:
