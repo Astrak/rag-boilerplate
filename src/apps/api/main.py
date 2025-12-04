@@ -1,5 +1,5 @@
 from apps.api.search_prompt import get_search_prompt
-from apps.api.search_prompt import get_analyze_prompt
+from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI
