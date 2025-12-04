@@ -5,6 +5,7 @@ from graph.main import Graph
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing_extensions import TypedDict
 import os
 
 app = FastAPI()
@@ -40,6 +41,10 @@ def home():
 class SearchRequest(BaseModel):
     question: str
 
+class Resource(TypedDict):
+    url: str
+    title: str
+
 @app.post("/search")
 def search(request: SearchRequest):
     print('search request received: ' + request.question)
@@ -47,9 +52,19 @@ def search(request: SearchRequest):
     print('similarity search finished')
     return {"results": result['answer']}
 
+@app.post("/retrieve")
+def search(request: SearchRequest):
+    print('search request received: ' + request.question)
+    result = analysis_graph.retrieve({'question': request.question, 'discussion': ''}) 
+    resources: list[Resource] = []
+    for doc in result['context']:
+        resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+    print('similarity search finished')
+    return {"resources": result['context']}
+
 @app.post("/analyze")
 def search(request: SearchRequest):
     print('analyze request received: ' + request.question)
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
-    return {"results": result['answer'], "context": result['context']}
+    return {"results": result['answer'], "resources": result['resources']}
