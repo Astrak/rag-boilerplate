@@ -1,25 +1,94 @@
 <!DOCTYPE html>
 <head>
     <title>Polemia playground</title>
+    <link rel="icon" href="https://www.polemia.com/wp-content/uploads/2020/05/cropped-favicon-1-32x32.png" sizes="32x32">
     <style>
+        body {
+            background-color: #eef;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 10px;
+        }
+        button {
+            background-color: #447cbf;
+            color: #fff;
+        }
+        button:hover{
 
+            cursor: pointer;
+        }
+        input {
+            border: 0;
+            border-bottom: solid 5px #447cbf;
+            padding: 10px;
+            flex: 1;
+        }
+        #console {
+            display: flex;
+            gap: 20px;
+            flex-direction:row;
+            justify-content: space-between;
+        }
+        #commands {
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+        }
+        #results div {
+            border: solid 1px #aac;
+            background-color: #dde;
+        }
     </style>
 </head>
 <body>
-    <div><input type="text" id="question"></input><button id="send">Envoyer</button></div>
-    <div id="answer"></div>
+    <div id="console">
+        <input type="text" id="question" placeholder="Écrivez ici une question ou un mot-clé"></input>
+        <div id="commands">
+            <button id="find">Trouver</button><button id="sumup">Résumer</button><button id="analyze">Analyzer</button>
+        </div>
+    </div>
+    <div id="results">
+        <div id="overview"></div>
+        <div id="analysis"></div>
+        <div id="sources"></div>
+    </div>
     <script>
-        const button = document.getElementById('send');
         const input = document.getElementById('question');
-        const answer = document.getElementById('answer');
-        button.addEventListener('click', async e=>{
+        const find = document.getElementById('find');
+        const sumup = document.getElementById('sumup');
+        const analyze = document.getElementById('analyze');
+        const overview = document.getElementById('overview');
+        const analysis = document.getElementById('analysis');
+        const sources = document.getElementById('sources');
+        analyze.addEventListener('click', async e=>{
             const response = await fetch('http://16.171.231.107:8000/analyze', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ question: input.value})
             })
             const json = await response.json();
-            answer.innerHTML = json.results.split('\n').join('<br><br>') 
-        })
+            analysis.innerHTML = json.results.split('\n').join('<br><br>') 
+            sources.innerHTML = `<pre>${json.resources.join('<br>- ')}</pre>`
+        });
+        find.addEventListener('click', async e=>{
+            const response = await fetch('http://16.171.231.107:8000/retrieve', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ question: input.value})
+            })
+            const json = await response.json();
+            sources.innerHTML = `<pre>- ${json.resources.map(entry=>`<a href="${entry.url}">${entry.title ?? entry.url}</a>`).join('<br>- ')}</pre>`
+        });
+        sumup.addEventListener('click', async e=>{
+            const response = await fetch('http://16.171.231.107:8000/search', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ question: input.value})
+            })
+            const json = await response.json();
+            overview.innerHTML = json.results
+        });
     </script>
 </body>

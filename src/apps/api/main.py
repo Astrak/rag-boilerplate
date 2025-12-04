@@ -67,7 +67,7 @@ def search(request: SearchRequest):
     print('analyze request received: ' + request.question)
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     resources: list[Resource] = []
-    for doc in result['resources']:
+    for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
     print('similarity search finished')
     return {"results": result['answer'], "resources": resources}
