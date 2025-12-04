@@ -60,7 +60,7 @@ def search(request: SearchRequest):
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
     print('similarity search finished')
-    return {"resources": result['context']}
+    return {"resources": resources}
 
 @app.post("/analyze")
 def search(request: SearchRequest):
