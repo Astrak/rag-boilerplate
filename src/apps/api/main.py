@@ -1,4 +1,5 @@
-from apps.api.prompt import get_prompt
+from apps.api.search_prompt import get_search_prompt
+from apps.api.search_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI
@@ -15,9 +16,11 @@ print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
 
 fill_env()
 
-prompt = get_prompt()
+search_prompt = get_search_prompt()
+analyze_prompt = get_analyze_prompt()
 
-graph = Graph(prompt, folders_list)
+search_graph = Graph(search_prompt, folders_list)
+analysis_graph = Graph(analyze_prompt, folders_list)
 
 app = FastAPI()
 
@@ -31,6 +34,13 @@ class SearchRequest(BaseModel):
 @app.post("/search")
 def search(request: SearchRequest):
     print('search request received: ' + request.question)
-    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    print('similarity search finished')
+    return {"results": result['answer']}
+
+@app.post("/analyze")
+def search(request: SearchRequest):
+    print('analyze request received: ' + request.question)
+    result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
     return {"results": result['answer']}

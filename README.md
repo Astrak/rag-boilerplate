@@ -4,7 +4,7 @@ This repo allows to build RAG solutions for several applications.
 It has two parts:
 
 - one to scrape a set of defined websites (crawls+indexes pages)
-- one to serve and endpoint for the RAG chatbot.
+- one with the RAG chatbots for X, telegram, and one for web-based single-answers interfaces.
 
 It is designed to run on a lightweight server (EC2 t3micro), so the indices are split and read incrementally.
 
@@ -29,29 +29,42 @@ The environment requires the following keys:
 - `XAI_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 
-To start the telegram bot:
+### Launching apps
+
+#### Telegram:
 
 ```bash
-nohup python3 app.telegram.main &
+FOLDERS='./my-folder1/,./my-folder-2/' nohup python3 app.telegram.main &
 ```
 
 It should run at `@GweltazBot`.
 
-To start the web api:
+#### Endpoint
 
 ```bash
-uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+FOLDERS='./my-folder1/,./my-folder-2/' uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
 ```
 
 Verify launch with `curl http://16.171.231.107:8000`: it should answer with `"hello world"`
 
-To query the API:
+To query the API there are two endpoints:
+
+- `/search` offers an overview for keyword searches as in Google Overview, limited to 120 words:
 
 ```bash
 curl -X POST \
 -H "Content-Type: application/json" \
--d '{"question": "Is macron gay?"}' \
+-d '{"question": "Soros"}' \
 http://16.171.231.107:8000/search
+```
+
+- `/analyze` offers an in-depth analysis on a given keyword or question:
+
+```bash
+curl -X POST \
+-H "Content-Type: application/json" \
+-d '{"question": "Je veux un résumé sur la situation des sans-papiers en 2021"}' \
+http://16.171.231.107:8000/analyze
 ```
 
 ## Debug
