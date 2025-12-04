@@ -3,8 +3,19 @@ from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 folders = os.getenv("FOLDERS")
 if not folders:
@@ -21,8 +32,6 @@ analyze_prompt = get_analyze_prompt()
 
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
-
-app = FastAPI()
 
 @app.get("/")
 def home():

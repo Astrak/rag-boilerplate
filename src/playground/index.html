@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+    <title>Polemia playground</title>
+    <style>
+
+    </style>
+</head>
+<body>
+    <div><input type="text" id="question"></input><button id="send">Envoyer</button></div>
+    <div id="answer"></div>
+    <script>
+        const button = document.getElementById('send');
+        const input = document.getElementById('question');
+        const answer = document.getElementById('answer');
+        button.addEventListener('click', async e=>{
+            const answer = await fetch('http://16.171.231.107:8000/analyze', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ question: input.value})
+            })
+            textarea.innerHTML = answer.json()
+        })
+    </script>
+</body>
