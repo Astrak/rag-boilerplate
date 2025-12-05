@@ -10,10 +10,15 @@
             flex-direction: column;
             padding: 20px;
             gap: 10px;
+            font-family: Arial, Helvetica, sans-serif;
         }
         button {
             background-color: #447cbf;
             color: #fff;
+            border: none;
+            outline:none;
+            font-size: 20px;
+            padding: 5px 20px;
         }
         button:hover{
 
@@ -22,8 +27,10 @@
         input {
             border: 0;
             border-bottom: solid 5px #447cbf;
-            padding: 10px;
+            padding: 20px;
+            font-size: 20px;
             flex: 1;
+            outline:none
         }
         #console {
             display: flex;
@@ -39,15 +46,47 @@
         #results div {
             border: solid 1px #aac;
             background-color: #dde;
+            padding: 20px;
+        }
+        #progress-container {
+            height: 20px;
+            position: relative
+        }
+        #progress {
+            background-color: #fdc62f;
+            position: absolute;
+            height: 100%;
+            left:0;
+            width: 0;
+        }
+        .analyze {
+            animation: progress 20s linear;
+        }
+        .sumup {
+            animation: progress 7s linear;
+        }
+        .find {
+            animation: progress 3s linear;
+        }
+        @keyframes progress {
+            from {
+                width: 0%
+            }
+            to {
+                width: 100%
+            }
         }
     </style>
 </head>
 <body>
     <div id="console">
-        <input type="text" id="question" placeholder="Écrivez ici une question ou un mot-clé"></input>
+        <input type="text" id="question" placeholder="Votre question, mot-clé..."></input>
         <div id="commands">
             <button id="find">Trouver</button><button id="sumup">Résumer</button><button id="analyze">Analyzer</button>
         </div>
+    </div>
+    <div id="progress-container">
+        <span id="progress"></span>
     </div>
     <div id="results">
         <div id="overview"></div>
@@ -62,32 +101,39 @@
         const overview = document.getElementById('overview');
         const analysis = document.getElementById('analysis');
         const sources = document.getElementById('sources');
+        const progress = document.getElementById('progress')
         analyze.addEventListener('click', async e=>{
+            progress.classList.add('analyze')
             const response = await fetch('http://16.171.231.107:8000/analyze', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ question: input.value})
             })
             const json = await response.json();
-            analysis.innerHTML = json.results.split('\n').join('<br><br>') 
-            sources.innerHTML = `<pre>${json.resources.join('<br>- ')}</pre>`
+            progress.classList.remove('analyze')
+            analysis.innerHTML = json.results.split('\n').join('<br>') 
+            sources.innerHTML = json.resources.map(entry=>`<a href="${entry.url}">${entry.title === null ? entry.url : entry.title}</a>`).join('<br>')
         });
         find.addEventListener('click', async e=>{
+            progress.classList.add('find')
             const response = await fetch('http://16.171.231.107:8000/retrieve', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ question: input.value})
             })
             const json = await response.json();
-            sources.innerHTML = `<pre>- ${json.resources.map(entry=>`<a href="${entry.url}">${entry.title ?? entry.url}</a>`).join('<br>- ')}</pre>`
+            progress.classList.remove('find')
+            sources.innerHTML = json.resources.map(entry=>`<a href="${entry.url}">${entry.title === null ? entry.url : entry.title}</a>`).join('<br>')
         });
         sumup.addEventListener('click', async e=>{
+            progress.classList.add('sumup')
             const response = await fetch('http://16.171.231.107:8000/search', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ question: input.value})
             })
             const json = await response.json();
+            progress.classList.remove('sumup')
             overview.innerHTML = json.results
         });
     </script>
