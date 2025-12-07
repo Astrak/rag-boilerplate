@@ -20,8 +20,10 @@
             font-size: 20px;
             padding: 5px 20px;
         }
+        button:disabled {
+            background-color: #85a2c5;
+        }
         button:hover{
-
             cursor: pointer;
         }
         input {
@@ -34,9 +36,28 @@
         }
         #console {
             display: flex;
+            flex-direction: column;
             gap: 20px;
-            flex-direction:row;
+        }
+        #main-panel {
+            display: flex;
+            gap: 20px;
+            flex-direction: row;
             justify-content: space-between;
+        }
+        #sources-panel {
+            display: flex;
+            gap: 20px;
+            flex-direction: row;
+            justify-content: space-evenly;
+        }
+        #sources-panel label {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        input[type=checkbox] {
+            transform: scale(1.5);
+            margin-right: 10px;
         }
         #commands {
             display: flex;
@@ -60,10 +81,10 @@
             width: 0;
         }
         .analyze {
-            animation: progress 20s linear;
+            animation: progress 6s linear;
         }
         .sumup {
-            animation: progress 7s linear;
+            animation: progress 4s linear;
         }
         .find {
             animation: progress 3s linear;
@@ -80,9 +101,21 @@
 </head>
 <body>
     <div id="console">
-        <input type="text" id="question" placeholder="Votre question, mot-clé..."></input>
-        <div id="commands">
-            <button id="find">Trouver</button><button id="sumup">Résumer</button><button id="analyze">Analyzer</button>
+        <div id="main-panel">
+            <img src="./LD5.png" alt="" height="70">
+            <input type="text" id="question" placeholder="Votre question, mot-clé..."></input>
+            <div id="commands">
+                <button id="find">Trouver</button><button id="sumup">Résumer</button><button id="analyze">Analyzer</button>
+            </div>
+        </div>
+        <div id="sources-panel">
+            <label><input type="checkbox" checked name="polemia">Polémia</input></label>
+            <label><input type="checkbox" checked name="polemia-archives">Archives Polémia</input></label>
+            <label><input type="checkbox" checked name="iliade">Iliade</input></label>
+            <label><input type="checkbox" checked name="ojim">OJIM</input></label>
+            <label><input type="checkbox" checked name="oid">OID</input></label>
+            <label><input type="checkbox" checked name="vanguard">Marc Vanguard</input></label>
+            <label><input type="checkbox" checked name="odj">ODJ</input></label>
         </div>
     </div>
     <div id="progress-container">
@@ -91,7 +124,7 @@
     <div id="results">
         <div id="overview"></div>
         <div id="analysis"></div>
-        <div id="sources"></div>
+        <div id="hits"></div>
     </div>
     <script>
         const input = document.getElementById('question');
@@ -100,37 +133,60 @@
         const analyze = document.getElementById('analyze');
         const overview = document.getElementById('overview');
         const analysis = document.getElementById('analysis');
-        const sources = document.getElementById('sources');
-        const progress = document.getElementById('progress')
+        const hits = document.getElementById('hits');
+        const progress = document.getElementById('progress');
+        const sourcesInput = document.querySelectorAll('input[type=checkbox]');
+        const sources = [];
+        for(let sourceInput of sourcesInput){
+            sources.push(sourceInput.name)
+            sourceInput.addEventListener('click', e => {
+                const source = e.target.name;
+                const index = sources.indexOf(source);
+                index === -1 ? sources.push(source) : sources.splice(index,1);
+                const buttons = document.getElementsByTagName('button')
+                for (let button of buttons) {
+                    button.disabled = sources.length === 0
+                }
+            })
+        }
         analyze.addEventListener('click', async e=>{
             progress.classList.add('analyze')
-            const response = await fetch('http://16.171.231.107:8000/analyze', { 
+            const response = await fetch('https://api.polem-ia.com/analyze', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ question: input.value})
+                body: JSON.stringify({ 
+                    question: input.value,
+                    sources
+                })
             })
             const json = await response.json();
             progress.classList.remove('analyze')
             analysis.innerHTML = json.results.split('\n').join('<br>') 
-            sources.innerHTML = json.resources.map(entry=>`<a href="${entry.url}">${entry.title === null ? entry.url : entry.title}</a>`).join('<br>')
+            hits.innerHTML = json.resources.map(entry=>`<a href="${entry.url}">${entry.title === null ? entry.url : entry.title}</a>`).join('<br>')
         });
         find.addEventListener('click', async e=>{
             progress.classList.add('find')
-            const response = await fetch('http://16.171.231.107:8000/retrieve', { 
+            const response = await fetch('https://api.polem-ia.com/retrieve', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ question: input.value})
+                body: JSON.stringify({ 
+                    question: input.value,
+                    sources
+                })
             })
             const json = await response.json();
             progress.classList.remove('find')
-            sources.innerHTML = json.resources.map(entry=>`<a href="${entry.url}">${entry.title === null ? entry.url : entry.title}</a>`).join('<br>')
+            hits.innerHTML = json.resources.map(entry=>`<a href="${entry.url}">${entry.title === null ? entry.url : entry.title}</a>`).join('<br>')
         });
         sumup.addEventListener('click', async e=>{
             progress.classList.add('sumup')
-            const response = await fetch('http://16.171.231.107:8000/search', { 
+            const response = await fetch('https://api.polem-ia.com/search', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ question: input.value})
+                body: JSON.stringify({ 
+                    question: input.value,
+                    sources
+                })
             })
             const json = await response.json();
             progress.classList.remove('sumup')
