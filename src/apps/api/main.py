@@ -40,7 +40,7 @@ def home():
 
 class SearchRequest(BaseModel):
     question: str
-    sources: str[]
+    sources: list[str]
 
 class Resource(TypedDict):
     url: str
