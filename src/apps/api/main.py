@@ -49,8 +49,9 @@ class Resource(TypedDict):
 @app.post("/search")
 def search(request: SearchRequest):
     print('search request received: ' + request.question)
-    print('sources wanted: ' + request.sources)
-    search_graph.folders = request.sources
+    sources = ",".join([f"./{src}/" for src in request.sources])
+    print('sources wanted: ' + sources)
+    search_graph.folders = sources
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
     return {"results": result['answer']}
@@ -58,8 +59,9 @@ def search(request: SearchRequest):
 @app.post("/retrieve")
 def search(request: SearchRequest):
     print('search request received: ' + request.question)
-    print('sources wanted: ' + request.sources)
-    analysis_graph.folders = request.sources
+    sources = ",".join([f"./{src}/" for src in request.sources])
+    print('sources wanted: ' + sources)
+    analysis_graph.folders = sources
     result = analysis_graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
@@ -70,8 +72,9 @@ def search(request: SearchRequest):
 @app.post("/analyze")
 def search(request: SearchRequest):
     print('analyze request received: ' + request.question)
-    print('sources wanted: ' + request.sources)
-    analysis_graph.folders = request.sources
+    sources = ",".join([f"./{src}/" for src in request.sources])
+    print('sources wanted: ' + sources)
+    analysis_graph.folders = sources
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
     return {"results": result['answer'], "resources": result['resources'] }
