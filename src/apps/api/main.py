@@ -41,6 +41,7 @@ def home():
 class SearchRequest(BaseModel):
     question: str
     sources: list[str]
+    llm: str
 
 class Resource(TypedDict):
     url: str
