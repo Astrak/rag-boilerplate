@@ -63,6 +63,7 @@ class Graph:
     def search_chunked_system(self, query_embedding):
         all_results: list[Document] = []
         for folder in self.folders:
+            print(folder)
             embeddings_folder = folder + 'embeddings/'
             embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
             n_chunks = len(embeddings_chunks)
