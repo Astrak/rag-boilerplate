@@ -58,6 +58,7 @@ def search(request: SearchRequest):
 
 @app.post("/retrieve")
 def search(request: SearchRequest):
+    print(request)
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
