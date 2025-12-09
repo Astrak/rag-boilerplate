@@ -2,7 +2,7 @@ from apps.api.search_prompt import get_search_prompt
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing_extensions import TypedDict
@@ -57,8 +57,8 @@ def search(request: SearchRequest):
     return {"results": result['answer']}
 
 @app.post("/retrieve")
-def search(request: SearchRequest):
-    print(request)
+def search(raw_request: Request, request: SearchRequest):
+    print(raw_request.client.host)
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
