@@ -25,7 +25,6 @@ folders_list = [item.strip() for item in folders.split(",")]
 
 print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
 
-
 fill_env()
 
 search_prompt = get_search_prompt()
