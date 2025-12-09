@@ -2,7 +2,7 @@ from apps.api.search_prompt import get_search_prompt
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing_extensions import TypedDict
@@ -32,6 +32,27 @@ analyze_prompt = get_analyze_prompt()
 
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
+from datetime import datetime, timedelta
+
+app = FastAPI()
+IP_LAST_SEEN = {}
+COOLDOWN = timedelta(seconds=5)
+
+@app.middleware("http")
+async def ip_throttle_middleware(request: Request, call_next):
+    ip = request.client.host
+    now = datetime.utcnow()
+
+    if ip in IP_LAST_SEEN and now - IP_LAST_SEEN[ip] < COOLDOWN:
+        raise HTTPException(
+            status_code=429,
+            detail="Chill out. 5 seconds between requests per IP.",
+            headers={"Retry-After": "5"}
+        )
+
+    IP_LAST_SEEN[ip] = now
+    response = await call_next(request)
+    return response
 
 @app.get("/")
 def home():
@@ -47,7 +68,8 @@ class Resource(TypedDict):
     title: str
 
 @app.post("/search")
-def search(request: SearchRequest):
+def search(raw_request: Request, request: SearchRequest):
+
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
@@ -58,7 +80,6 @@ def search(request: SearchRequest):
 
 @app.post("/retrieve")
 def search(raw_request: Request, request: SearchRequest):
-    print(raw_request.client.host)
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
@@ -71,7 +92,7 @@ def search(raw_request: Request, request: SearchRequest):
     return {"resources": resources}
 
 @app.post("/analyze")
-def search(request: SearchRequest):
+def search(raw_request: Request, request: SearchRequest):
     print('analyze request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
