@@ -783,6 +783,7 @@
           progress.classList.add("idle");
           document.body.appendChild(errorBox);
           setTimeout(() => errorBox.parentElement?.removeChild(errorBox), 3000);
+          find.disabled = sumup.disabled = analyze.disabled = false;
           console.error(error);
         }
       }
