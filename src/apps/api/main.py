@@ -25,7 +25,6 @@ search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
 
 allowed_origins = [
-    "https://polemia.surge.sh",
     "https://ia.polemia.com",
 ]
 
