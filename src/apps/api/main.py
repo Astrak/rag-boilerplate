@@ -10,8 +10,8 @@ from typing_extensions import TypedDict
 import os
 
 origins = [
-    "http://polemia.surge.sh",
-    "http://ia.polemia.com",
+    "https://polemia.surge.sh",
+    "https://ia.polemia.com",
 ]
 
 app = FastAPI()
