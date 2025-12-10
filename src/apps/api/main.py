@@ -27,21 +27,35 @@ analyze_prompt = get_analyze_prompt()
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
 
+# 2. Your IP throttle middleware (as a proper class)
 IP_THROTTLER = {}
-COOLDOWN = timedelta(seconds=3)
+COOLDOWN = timedelta(seconds=1)  # adjust as you wish
 
-@app.middleware("http")
-async def ip_throttle_middleware(request: Request, call_next):
-    ip = request.client.host
-    now = datetime.utcnow()
-    if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Rate limit reached"}
-        )
-    IP_THROTTLER[ip] = now
-    response = await call_next(request)
-    return response
+class IPThrottleMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive)
+        ip = request.client.host
+        now = datetime.utcnow()
+
+        if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
+            response = JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit reached"}
+            )
+            await response(scope, receive, send)
+            return
+
+        IP_THROTTLER[ip] = now
+        await self.app(scope, receive, send)
+
+app.add_middleware(IPThrottleMiddleware)
 
 origins = [
     "https://polemia.surge.sh",
