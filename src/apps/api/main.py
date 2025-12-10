@@ -40,8 +40,6 @@ analyze_prompt = get_analyze_prompt()
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
 
-app = FastAPI()
-
 IP_THROTTLER = {}
 COOLDOWN = timedelta(seconds=3)
 
