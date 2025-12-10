@@ -31,14 +31,14 @@ allowed_origins = [
 
 app = FastAPI()
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=allowed_origins,
-#     allow_credentials=False,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-# app.add_middleware(IPThrottleMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(IPThrottleMiddleware)
 
 @app.get("/")
 def home():
