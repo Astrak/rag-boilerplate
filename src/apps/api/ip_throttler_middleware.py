@@ -21,7 +21,7 @@ class IPThrottleMiddleware:
         if ip in IP_THROTTLER:
             delay = now - IP_THROTTLER[ip]
             if delay < COOLDOWN:
-                print("Will throttle " + ip + ", elapsed: " + delay)
+                print("Will throttle " + ip + ", elapsed: " + str(delay))
                 print(IP_THROTTLER[ip])
                 response = JSONResponse(
                     status_code=429,
