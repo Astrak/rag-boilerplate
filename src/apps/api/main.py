@@ -10,20 +10,7 @@ from typing_extensions import TypedDict
 from datetime import datetime, timedelta
 import os
 
-origins = [
-    "https://polemia.surge.sh",
-    "https://ia.polemia.com",
-]
-
 app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 folders = os.getenv("FOLDERS")
 if not folders:
@@ -55,6 +42,19 @@ async def ip_throttle_middleware(request: Request, call_next):
     IP_THROTTLER[ip] = now
     response = await call_next(request)
     return response
+
+origins = [
+    "https://polemia.surge.sh",
+    "https://ia.polemia.com",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def home():

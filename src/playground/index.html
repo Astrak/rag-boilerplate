@@ -726,16 +726,10 @@
             renderHits(json.resources);
           } else if (type === "sumup") {
             answer.classList.remove("hidden");
-            answer.innerHTML = cleanAnswerText(json.results).replace(
-              /\n/g,
-              "<br>"
-            );
+            answer.innerHTML = json.results.replace(/\n/g, "<br>");
           } else {
             answer.classList.remove("hidden");
-            answer.innerHTML = cleanAnswerText(json.results).replace(
-              /\n/g,
-              "<br>"
-            );
+            answer.innerHTML = json.results.replace(/\n/g, "<br>");
             renderHits(json.resources);
           }
         } catch (error) {
