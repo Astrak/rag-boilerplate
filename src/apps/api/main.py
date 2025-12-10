@@ -4,6 +4,7 @@ from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 import os
@@ -40,22 +41,20 @@ analysis_graph = Graph(analyze_prompt, folders_list)
 from datetime import datetime, timedelta
 
 app = FastAPI()
-IP_LAST_SEEN = {}
-COOLDOWN = timedelta(seconds=5)
+
+IP_THROTTLER = {}
+COOLDOWN = timedelta(seconds=3)
 
 @app.middleware("http")
 async def ip_throttle_middleware(request: Request, call_next):
     ip = request.client.host
     now = datetime.utcnow()
-
-    if ip in IP_LAST_SEEN and now - IP_LAST_SEEN[ip] < COOLDOWN:
-        raise HTTPException(
-            status_code=429,
-            detail="Chill out. 5 seconds between requests per IP.",
-            headers={"Retry-After": "5"}
+    if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Rate limit reached"}
         )
-
-    IP_LAST_SEEN[ip] = now
+    IP_THROTTLER[ip] = now
     response = await call_next(request)
     return response
 
