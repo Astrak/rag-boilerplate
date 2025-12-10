@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing_extensions import TypedDict
+from datetime import datetime, timedelta
 import os
 
 origins = [
@@ -38,7 +39,6 @@ analyze_prompt = get_analyze_prompt()
 
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
-from datetime import datetime, timedelta
 
 app = FastAPI()
 
