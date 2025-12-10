@@ -17,8 +17,11 @@ class IPThrottleMiddleware:
         request = Request(scope, receive)
         ip = request.client.host
         now = datetime.utcnow()
+        delay = now - IP_THROTTLER[ip]
 
-        if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
+        if ip in IP_THROTTLER and delay < COOLDOWN:
+            print("Will throttle " + ip + ", elapsed: " + delay)
+            print(IP_THROTTLER[ip])
             response = JSONResponse(
                 status_code=429,
                 content={"error": "Rate limit reached"}
