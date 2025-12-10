@@ -734,6 +734,8 @@
         );
         progress.classList.add(`animate-${type}`);
 
+        find.disabled = sumup.disabled = analyze.disabled = true;
+
         const endpoints = {
           find: "https://api.polem-ia.com/retrieve",
           sumup: "https://api.polem-ia.com/search",
@@ -759,6 +761,8 @@
             "animate-analyze"
           );
           progress.classList.add("idle");
+
+          find.disabled = sumup.disabled = analyze.disabled = false;
 
           if (type === "find") {
             renderHits(json.resources);
