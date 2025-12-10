@@ -2,13 +2,33 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>Polemia Playground</title>
+    <title>
+      Polem'IA | Penser clair. Analyser juste. Assumer nos fondamentaux
+    </title>
     <link
       rel="icon"
       href="https://www.polemia.com/wp-content/uploads/2020/05/cropped-favicon-1-32x32.png"
       sizes="32x32"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Polem'IA | Penser clair. Analyser juste. Assumer nos fondamentaux"
+    />
+    <meta
+      property="og:description"
+      content="Polem’IA est une intelligence artificielle dédiée à l’analyse politique, culturelle et civilisationnelle, dans une perspective identitaire et conservatrice. Un outil conçu pour offrir des réponses structurées, documentées et ancrées dans le réel."
+    />
+    <meta property="og:url" content="https://ia.polemia.com" />
+    <meta property="og:site_name" content="IA Polemia" />
+    <meta property="og:image" content="https://ia.polemia.com/og-image.jpg" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@_polemia" />
     <link
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -315,7 +335,7 @@
         padding: 1.5rem;
         border-radius: 1rem;
         box-shadow: var(--shadow-lg);
-        border: 1px solid var(--border);
+        /* border: 1px solid var(--border); */
         line-height: 1.7;
         animation: fadeInUp 0.4s ease forwards;
       }
@@ -327,7 +347,7 @@
         padding: 1.5rem;
         border-radius: 1rem;
         box-shadow: var(--shadow-lg);
-        border: 1px solid var(--border);
+        /* border: 1px solid var(--border);  */
         animation: fadeInUp 0.4s ease forwards;
       }
 
@@ -463,7 +483,9 @@
     <div class="container">
       <div class="glass-card">
         <div class="main-panel">
-          <img src="./LD5.png" alt="Polemia" class="logo" />
+          <a href="https://ia.polemia.com"
+            ><img src="./LD5.png" alt="IA Polemia" class="logo"
+          /></a>
 
           <div class="ai-selector-wrapper">
             <select class="ai-selector" id="ai-selector">
@@ -588,7 +610,7 @@
       const sourcesData = [
         { name: "polemia", label: "Polémia" },
         { name: "polemia-archives", label: "Archives Polémia" },
-        { name: "iliade", label: "Iliade" },
+        { name: "iliade", label: "Institut Iliade" },
         { name: "ojim", label: "OJIM" },
         { name: "oid", label: "OID" },
         { name: "vanguard", label: "Marc Vanguard" },
@@ -614,7 +636,7 @@
         if (url.includes("observatoire-justice.org")) return "ODJ";
         if (url.includes("observatoire-immigration.fr")) return "OID";
         if (url.includes("marc-vanguard.com")) return "Marc Vanguard";
-        if (url.includes("institut-iliade.com")) return "Iliade";
+        if (url.includes("institut-iliade.com")) return "Institut Iliade";
         return "Source";
       }
 
@@ -739,7 +761,7 @@
             "animate-analyze"
           );
           progress.classList.add("idle");
-          //   alert("Une erreur est survenue lors de la requête.");
+          // Add error box
         }
       }
 
