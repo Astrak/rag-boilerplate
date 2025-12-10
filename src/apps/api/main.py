@@ -25,6 +25,7 @@ search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
 
 allowed_origins = [
+    "https://polemia.surge.sh",
     "https://ia.polemia.com",
 ]
 
@@ -37,7 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# app.add_middleware(IPThrottleMiddleware)
+app.add_middleware(IPThrottleMiddleware)
 
 @app.get("/")
 def home():
