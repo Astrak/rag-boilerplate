@@ -427,6 +427,18 @@
         transform: translateX(4px);
       }
 
+      #error {
+        background-color: #e96b6b;
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: solid 1px #f73a3a;
+        color: #fff;
+        animation: fadeInUp 0.4s ease forwards;
+        position: absolute;
+        right: 20px;
+        top: 20px;
+      }
+
       /* Disclaimer Footer */
       .disclaimer {
         font-size: 0.75rem;
@@ -547,7 +559,7 @@
           </div>
 
           <div class="commands">
-            <button class="btn" id="find">
+            <button disabled class="btn" id="find">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -558,7 +570,7 @@
               </svg>
               <span class="btn-text">Trouver</span>
             </button>
-            <button class="btn" id="sumup">
+            <button disabled class="btn" id="sumup">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -569,7 +581,7 @@
               </svg>
               <span class="btn-text">Résumer</span>
             </button>
-            <button class="btn" id="analyze">
+            <button disabled class="btn" id="analyze">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -606,6 +618,8 @@
       </footer>
     </div>
 
+    <div id="error">An error occured</div>
+
     <script>
       const sourcesData = [
         { name: "polemia", label: "Polémia" },
@@ -625,6 +639,8 @@
       const hitsContainer = document.getElementById("hits");
       const progress = document.getElementById("progress");
       const aiSelector = document.getElementById("ai-selector");
+      const errorBox = document.getElementById("error");
+      document.body.removeChild(errorBox);
 
       // All sources active by default
       const sources = sourcesData.map((s) => s.name);
@@ -761,10 +777,18 @@
             "animate-analyze"
           );
           progress.classList.add("idle");
+          document.body.appendChild(errorBox);
+          setTimeout(() => errorBox.parentElement?.removeChild(errorBox), 3000);
           console.error(error);
         }
       }
 
+      input.addEventListener("input", (e) => {
+        find.disabled =
+          sumup.disabled =
+          analyze.disabled =
+            e.target.value.length < 2;
+      });
       find.addEventListener("click", () => doAction("find"));
       sumup.addEventListener("click", () => doAction("sumup"));
       analyze.addEventListener("click", () => doAction("analyze"));
