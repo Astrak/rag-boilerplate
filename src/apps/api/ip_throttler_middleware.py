@@ -19,6 +19,8 @@ class IPThrottleMiddleware:
         now = datetime.utcnow()
 
         if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
+            print("Will throttle!")
+            print(IP_THROTTLER[ip])
             response = JSONResponse(
                 status_code=429,
                 content={"error": "Rate limit reached"}
