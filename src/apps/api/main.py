@@ -45,18 +45,18 @@ app = FastAPI()
 IP_THROTTLER = {}
 COOLDOWN = timedelta(seconds=3)
 
-@app.middleware("http")
-async def ip_throttle_middleware(request: Request, call_next):
-    ip = request.client.host
-    now = datetime.utcnow()
-    if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Rate limit reached"}
-        )
-    IP_THROTTLER[ip] = now
-    response = await call_next(request)
-    return response
+# @app.middleware("http")
+# async def ip_throttle_middleware(request: Request, call_next):
+#     ip = request.client.host
+#     now = datetime.utcnow()
+#     if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
+#         return JSONResponse(
+#             status_code=409,
+#             content={"detail": "Rate limit reached"}
+#         )
+#     IP_THROTTLER[ip] = now
+#     response = await call_next(request)
+#     return response
 
 @app.get("/")
 def home():
