@@ -13,14 +13,14 @@ class IPThrottleMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        
-        if request.method == "OPTIONS":
-            await self.app(scope, receive, send)
-            return
 
         request = Request(scope, receive)
         ip = request.client.host
         now = datetime.utcnow()
+        
+        if request.method == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
 
         if ip in IP_THROTTLER:
             delay = now - IP_THROTTLER[ip]
