@@ -2,15 +2,12 @@ from apps.api.search_prompt import get_search_prompt
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing_extensions import TypedDict
-from datetime import datetime, timedelta
+from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 import os
-
-app = FastAPI()
 
 folders = os.getenv("FOLDERS")
 if not folders:
@@ -27,47 +24,22 @@ analyze_prompt = get_analyze_prompt()
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
 
-IP_THROTTLER = {}
-COOLDOWN = timedelta(seconds=3)
-
-class IPThrottleMiddleware:
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        request = Request(scope, receive)
-        ip = request.client.host
-        now = datetime.utcnow()
-
-        if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
-            response = JSONResponse(
-                status_code=429,
-                content={"error": "Rate limit reached"}
-            )
-            await response(scope, receive, send)
-            return
-
-        IP_THROTTLER[ip] = now
-        await self.app(scope, receive, send)
-
-app.add_middleware(IPThrottleMiddleware)
-
-origins = [
+allowed_origins = [
     "https://polemia.surge.sh",
     "https://ia.polemia.com",
 ]
 
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(IPThrottleMiddleware)
 
 @app.get("/")
 def home():
