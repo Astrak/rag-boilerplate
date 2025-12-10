@@ -27,9 +27,8 @@ analyze_prompt = get_analyze_prompt()
 search_graph = Graph(search_prompt, folders_list)
 analysis_graph = Graph(analyze_prompt, folders_list)
 
-# 2. Your IP throttle middleware (as a proper class)
 IP_THROTTLER = {}
-COOLDOWN = timedelta(seconds=1)  # adjust as you wish
+COOLDOWN = timedelta(seconds=3)
 
 class IPThrottleMiddleware:
     def __init__(self, app):
@@ -47,7 +46,7 @@ class IPThrottleMiddleware:
         if ip in IP_THROTTLER and now - IP_THROTTLER[ip] < COOLDOWN:
             response = JSONResponse(
                 status_code=429,
-                content={"detail": "Rate limit reached"}
+                content={"error": "Rate limit reached"}
             )
             await response(scope, receive, send)
             return
