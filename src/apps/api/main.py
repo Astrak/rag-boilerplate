@@ -8,12 +8,17 @@ from pydantic import BaseModel
 from typing_extensions import TypedDict
 import os
 
+origins = [
+    "http://polemia.surge.sh",
+    "http://ia.polemia.com",
+]
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -68,8 +73,7 @@ class Resource(TypedDict):
     title: str
 
 @app.post("/search")
-def search(raw_request: Request, request: SearchRequest):
-
+def search(request: SearchRequest):
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
@@ -79,7 +83,7 @@ def search(raw_request: Request, request: SearchRequest):
     return {"results": result['answer']}
 
 @app.post("/retrieve")
-def search(raw_request: Request, request: SearchRequest):
+def search(request: SearchRequest):
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
@@ -92,7 +96,7 @@ def search(raw_request: Request, request: SearchRequest):
     return {"resources": resources}
 
 @app.post("/analyze")
-def search(raw_request: Request, request: SearchRequest):
+def search(request: SearchRequest):
     print('analyze request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
