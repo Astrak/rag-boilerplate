@@ -65,7 +65,7 @@ class ArticleDownloader:
             soup = BeautifulSoup(response.content, 'html.parser')
 
             title = None
-            title_elem = cast(Tag, soup.select_one('h1.entry-title'))
+            title_elem = cast(Tag, soup.select_one('.article_title'))
             if title_elem:
                 title = title_elem.get_text(strip=True)
             if not title:
