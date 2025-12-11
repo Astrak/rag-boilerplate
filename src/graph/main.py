@@ -67,6 +67,7 @@ class Graph:
         start_time = time.time()
         response = self.llm.invoke(messages)
         input_text = messages.to_string()
+        print(f"Full input text to LLM is {len(input_text)} characters long")
         output_text = response.content
         cost_estimation = gemini_cost_approx(input_text, output_text)
         delay = time.time() - start_time
