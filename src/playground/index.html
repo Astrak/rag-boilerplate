@@ -769,10 +769,18 @@
           } else if (type === "sumup") {
             answer.classList.remove("hidden");
             answer.innerHTML = json.results.replace(/\n/g, "<br>");
+            answer.innerHTML += `<p id="cost">${json.cost.replace(
+              ".",
+              ","
+            )}€</p>`;
             renderHits(json.resources);
           } else {
             answer.classList.remove("hidden");
             answer.innerHTML = json.results.replace(/\n/g, "<br>");
+            answer.innerHTML += `<p id="cost">${json.cost.replace(
+              ".",
+              ","
+            )}€</p>`;
             renderHits(json.resources);
           }
         } catch (error) {

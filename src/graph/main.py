@@ -30,7 +30,7 @@ class State(TypedDict):
     context: List[Document]
     answer: str
     resources: List[Resource]
-    cost: str
+    cost: float
 
 class Graph:
     def __init__(self, prompt: PromptTemplate, folders: List[str]):
@@ -68,7 +68,7 @@ class Graph:
         response = self.llm.invoke(messages)
         input_text = messages.to_string()
         output_text = response.content
-        cost_estimation = str(gemini_cost_approx(input_text, output_text))
+        cost_estimation = gemini_cost_approx(input_text, output_text)
         delay = time.time() - start_time
         print("LLM answered in %ssec:" % delay)
         print(f"\nRéponse :\n\n{response.content}")
