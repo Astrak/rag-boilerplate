@@ -48,7 +48,7 @@ app.add_middleware(
         "X-Twitter-Response-Format",
     ],
 )
-# app.add_middleware(IPThrottleMiddleware)
+app.add_middleware(IPThrottleMiddleware)
 
 @app.get("/")
 def home():
