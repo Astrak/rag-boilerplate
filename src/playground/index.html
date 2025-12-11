@@ -769,6 +769,7 @@
           } else if (type === "sumup") {
             answer.classList.remove("hidden");
             answer.innerHTML = json.results.replace(/\n/g, "<br>");
+            renderHits(json.resources);
           } else {
             answer.classList.remove("hidden");
             answer.innerHTML = json.results.replace(/\n/g, "<br>");

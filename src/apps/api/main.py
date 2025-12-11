@@ -61,7 +61,7 @@ def search(request: SearchRequest):
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
-    return {"results": result['answer']}
+    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/retrieve")
 def search(request: SearchRequest):
@@ -84,4 +84,4 @@ def search(request: SearchRequest):
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('similarity search finished')
-    return {"results": result['answer'], "resources": result['resources'] }
+    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }

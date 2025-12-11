@@ -10,6 +10,16 @@ import faiss
 import pickle
 import numpy as np 
 
+def gemini_tokens_approx(text: str) -> int:
+    return len(text) // 4 + 1 
+
+def gemini_cost_approx(input_text: str, output_text: str) -> float:
+    input_tokens  = gemini_tokens_approx(input_text)
+    output_tokens = gemini_tokens_approx(output_text)
+    input_rate  = 0.1
+    output_rate = 0.4
+    return (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
+
 class Resource(TypedDict):
     url: str
     title: str
@@ -20,6 +30,7 @@ class State(TypedDict):
     context: List[Document]
     answer: str
     resources: List[Resource]
+    cost: str
 
 class Graph:
     def __init__(self, prompt: PromptTemplate, folders: List[str]):
@@ -55,10 +66,13 @@ class Graph:
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
         response = self.llm.invoke(messages)
+        input_text = messages.to_string()
+        output_text = response.content
+        cost_estimation = str(gemini_cost_approx(input_text, output_text))
         delay = time.time() - start_time
         print("LLM answered in %ssec:" % delay)
         print(f"\nRéponse :\n\n{response.content}")
-        return {'answer': response.content, 'context': context, 'resources': resources }
+        return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
     def search_chunked_system(self, query_embedding):
         all_results: list[Document] = []
