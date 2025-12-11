@@ -2,7 +2,7 @@ from apps.api.search_prompt import get_search_prompt
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing_extensions import TypedDict
@@ -31,23 +31,23 @@ allowed_origins = [
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=[
-        "*",
-        "X-Twitter-Active-User",
-        "X-Twitter-Client",
-        "X-Twitter-Client-Version",
-        "X-Twitter-API-Version",
-        "X-Twitter-Auth-Type",
-        "X-Twitter-Client-DeviceID",
-        "X-Twitter-Client-Language",
-        "X-Twitter-Response-Format",
-    ],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=allowed_origins,
+#     allow_credentials=False,
+#     allow_methods=["*"],
+#     allow_headers=[
+#         "*",
+#         "X-Twitter-Active-User",
+#         "X-Twitter-Client",
+#         "X-Twitter-Client-Version",
+#         "X-Twitter-API-Version",
+#         "X-Twitter-Auth-Type",
+#         "X-Twitter-Client-DeviceID",
+#         "X-Twitter-Client-Language",
+#         "X-Twitter-Response-Format",
+#     ],
+# )
 app.add_middleware(IPThrottleMiddleware)
 
 @app.get("/")
@@ -64,7 +64,8 @@ class Resource(TypedDict):
     title: str
 
 @app.post("/search")
-def search(request: SearchRequest):
+def search(raw_request: Request, request: SearchRequest):
+    print(raw_request.headers)
     print('search request received: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('sources wanted: ' + sources)
