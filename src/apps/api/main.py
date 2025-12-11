@@ -2,7 +2,7 @@ from apps.api.search_prompt import get_search_prompt
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing_extensions import TypedDict
@@ -30,6 +30,31 @@ allowed_origins = [
 ]
 
 app = FastAPI()
+
+from typing import Callable
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("uvicorn.error")
+
+@app.middleware("http")
+async def log_all_headers_middleware(request: Request, call_next: Callable):
+    # Log only OPTIONS requests (or remove the condition to see everything)
+    if request.method == "OPTIONS":
+        client_ip = request.client.host if request.client else "unknown"
+        origin = request.headers.get("origin", "no-origin")
+        logger.info("=== FAILED OPTIONS FROM X iOS ===")
+        logger.info(f"Client IP: {client_ip}")
+        logger.info(f"Origin: {origin}")
+        logger.info(f"Access-Control-Request-Method: {request.headers.get('access-control-request-method')}")
+        logger.info(f"Access-Control-Request-Headers: {request.headers.get('access-control-request-headers')}")
+        logger.info("ALL HEADERS:")
+        for name, value in request.headers.items():
+            logger.info(f"  {name}: {value}")
+        logger.info("=====================================")
+
+    response: Response = await call_next(request)
+    return response
 
 app.add_middleware(
     CORSMiddleware,
