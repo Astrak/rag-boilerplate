@@ -36,7 +36,17 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=[
+        "*",
+        "X-Twitter-Active-User",
+        "X-Twitter-Client",
+        "X-Twitter-Client-Version",
+        "X-Twitter-API-Version",
+        "X-Twitter-Auth-Type",
+        "X-Twitter-Client-DeviceID",
+        "X-Twitter-Client-Language",
+        "X-Twitter-Response-Format",
+    ],
 )
 # app.add_middleware(IPThrottleMiddleware)
 
