@@ -42,11 +42,11 @@ class Graph:
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
 
     def retrieve(self, state: State):
-        print(f'GRAPH: Retrieve: Received question: {state["question"]}')
+        print(f'\033[94mGRAPH: Retrieve: Received question: {state["question"]}')
         MODEL = "text-embedding-3-large"
         response = openai.embeddings.create(input=state["question"],model=MODEL)
         question_embeddings = response.data[0].embedding
-        print('GRAPH: Retrieve: Successfully generated embeddings for question')
+        print('\033[94mGRAPH: Retrieve: Successfully generated embeddings for question')
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
@@ -61,13 +61,13 @@ class Graph:
         start_time = time.time()
         response = self.llm.invoke(messages)
         input_text = messages.to_string()
-        print(f"GRAPH: Full input text to LLM is {len(input_text)} characters long")
+        print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
         output_text = response.content
-        print(f"GRAPH: Output text from LLM is {len(output_text)} characters long")
+        print(f"\033[94mGRAPH: Output text from LLM is {len(output_text)} characters long")
         cost_estimation = gemini_cost_approx(input_text, output_text)
         delay = time.time() - start_time
-        print("GRAPH: LLM answered in %ssec:" % delay)
-        print(f"GRAPH: Answer :\n\n{response.content}")
+        print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
+        print(f"\033[94mGRAPH: Answer :\n{response.content}")
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
     def search_embeddings(self, query_embedding):
@@ -92,7 +92,7 @@ class Graph:
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
         context = [item[1] for item in relevancy_culled_list] 
-        print(f'GRAPH: Embeddings: Found {len(context)} matching documents')
+        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents')
         return context
     
     def invoke(self, question, discussion = ""):

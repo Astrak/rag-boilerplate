@@ -71,7 +71,7 @@ class Resource(TypedDict):
 def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
-    print('Request type is RETRIEVE: ' + request.question)
+    print('\033[93mRequest type is RETRIEVE: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('Request for sources: ' + ", ".join(request.sources))
     analysis_graph.folders = sources.split(',')
@@ -86,7 +86,7 @@ def search(request: SearchRequest):
 def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
-    print('Request type is SUMUP: ' + request.question)
+    print('\033[93mRequest type is SUMUP: ' + request.question)
     print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     search_graph.folders = sources.split(',')
@@ -98,7 +98,7 @@ def search(request: SearchRequest):
 def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
-    print('Request type is SUMUP: ' + request.question)
+    print('\033[93mRequest type is SUMUP: ' + request.question)
     print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     search_graph.folders = sources.split(',')
@@ -110,7 +110,7 @@ def search(request: SearchRequest):
 def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
-    print('Request type is ANALYZE: ' + request.question)
+    print('\033[93mRequest type is ANALYZE: ' + request.question)
     print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     analysis_graph.folders = sources.split(',')
