@@ -73,7 +73,7 @@ def search(request: SearchRequest):
     print('Request received at: ' + str(time))
     print('Request type is RETRIEVE: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
-    print('Sources wanted: ' + ", ".join(request.sources))
+    print('Request for sources: ' + ", ".join(request.sources))
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
@@ -87,7 +87,7 @@ def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
     print('Request type is SUMUP: ' + request.question)
-    print('Sources wanted: ' + ", ".join(request.sources))
+    print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
@@ -99,7 +99,7 @@ def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
     print('Request type is SUMUP: ' + request.question)
-    print('Sources wanted: ' + ", ".join(request.sources))
+    print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
@@ -111,7 +111,7 @@ def search(request: SearchRequest):
     time = datetime.utcnow()
     print('Request received at: ' + str(time))
     print('Request type is ANALYZE: ' + request.question)
-    print('Sources wanted: ' + ", ".join(request.sources))
+    print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]

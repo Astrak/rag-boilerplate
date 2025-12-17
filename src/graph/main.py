@@ -46,7 +46,7 @@ class Graph:
         MODEL = "text-embedding-3-large"
         response = openai.embeddings.create(input=state["question"],model=MODEL)
         question_embeddings = response.data[0].embedding
-        print('GRAPH: Successfully generated embeddings for question')
+        print('GRAPH: Retrieve: Successfully generated embeddings for question')
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
