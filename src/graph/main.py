@@ -42,35 +42,35 @@ class Graph:
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
 
     def retrieve(self, state: State):
-        print(f'Received question: {state["question"]}')
+        print(f'GRAPH: Received question: {state["question"]}')
         MODEL = "text-embedding-3-large"
         response = openai.embeddings.create(input=state["question"],model=MODEL)
         question_embeddings = response.data[0].embedding
-        print('Successfully generated embeddings for question')
+        print('GRAPH: Successfully generated embeddings for question')
         matching_documents = self.search_chunked_system(question_embeddings)
         return {"context": matching_documents}
 
     def generate(self, state: State):
         print('############')
-        print(f'Received question: {state["question"]}')
+        print(f'GRAPH: Received question: {state["question"]}')
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        print(f'Found {len(context)} matching documents:')
+        print(f'GRAPH: Found {len(context)} matching documents:')
         str_context = "\n\n".join(context)
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
         response = self.llm.invoke(messages)
         input_text = messages.to_string()
-        print(f"Full input text to LLM is {len(input_text)} characters long")
+        print(f"GRAPH: Full input text to LLM is {len(input_text)} characters long")
         output_text = response.content
-        print(f"Output text from LLM is {len(output_text)} characters long")
+        print(f"GRAPH: Output text from LLM is {len(output_text)} characters long")
         cost_estimation = gemini_cost_approx(input_text, output_text)
         delay = time.time() - start_time
-        print("LLM answered in %ssec:" % delay)
-        print(f"\nRéponse :\n\n{response.content}")
+        print("GRAPH: LLM answered in %ssec:" % delay)
+        print(f"\nGRAPH: Answer :\n\n{response.content}")
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
     def search_chunked_system(self, query_embedding):
