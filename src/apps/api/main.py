@@ -64,18 +64,6 @@ class Resource(TypedDict):
     url: str
     title: str
 
-@app.post("/search")
-def search(request: SearchRequest):
-    time = datetime.utcnow()
-    print('Request received at: ' + str(time))
-    print('Request type is SUMUP: ' + request.question)
-    sources = ",".join([f"./{src}/" for src in request.sources])
-    print('Sources wanted: ' + sources)
-    search_graph.folders = sources.split(',')
-    result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request answered in ' + str(datetime.utcnow() - time))
-    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
-
 @app.post("/retrieve")
 def search(request: SearchRequest):
     time = datetime.utcnow()
@@ -90,6 +78,18 @@ def search(request: SearchRequest):
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
     print('Sources found in ' + str(datetime.utcnow() - time))
     return {"resources": resources}
+
+@app.post("/search")
+def search(request: SearchRequest):
+    time = datetime.utcnow()
+    print('Request received at: ' + str(time))
+    print('Request type is SUMUP: ' + request.question)
+    sources = ",".join([f"./{src}/" for src in request.sources])
+    print('Sources wanted: ' + sources)
+    search_graph.folders = sources.split(',')
+    result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    print('Request answered in ' + str(datetime.utcnow() - time))
+    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/analyze")
 def search(request: SearchRequest):
