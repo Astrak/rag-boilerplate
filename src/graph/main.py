@@ -51,7 +51,6 @@ class Graph:
         return {"context": matching_documents}
 
     def generate(self, state: State):
-        print('############')
         print(f'GRAPH: Received question: {state["question"]}')
         context: list[str] = []
         resources: list[Resource] = []
@@ -70,7 +69,7 @@ class Graph:
         cost_estimation = gemini_cost_approx(input_text, output_text)
         delay = time.time() - start_time
         print("GRAPH: LLM answered in %ssec:" % delay)
-        print(f"\nGRAPH: Answer :\n\n{response.content}")
+        print(f"GRAPH: Answer :\n\n{response.content}")
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
     def search_chunked_system(self, query_embedding):
