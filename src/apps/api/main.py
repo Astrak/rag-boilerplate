@@ -70,8 +70,8 @@ class Resource(TypedDict):
 @app.post("/retrieve")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + str(time))
-    print('\033[93mRequest type is RETRIEVE: ' + request.question)
+    print('\033[93mRequest RETRIEVE received at: ' + str(time))
+    print('Request is: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('Request for sources: ' + ", ".join(request.sources))
     analysis_graph.folders = sources.split(',')
@@ -79,41 +79,41 @@ def search(request: SearchRequest):
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-    print('Sources RETRIEVE found in ' + str(datetime.utcnow() - time))
+    print('\033[93mSources RETRIEVE found in ' + str(datetime.utcnow() - time))
     return {"resources": resources}
 
 @app.post("/sumup")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + str(time))
-    print('\033[93mRequest type is SUMUP: ' + request.question)
+    print('\033[93mRequest SUMUP received at: ' + str(time))
+    print('Request is: ' + request.question)
     print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request SUMUP answered in ' + str(datetime.utcnow() - time))
+    print('\033[93mRequest SUMUP answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/search")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + str(time))
-    print('\033[93mRequest type is SUMUP: ' + request.question)
+    print('\033[93mRequest SUMUP received at: ' + str(time))
+    print('Request is: ' + request.question)
     print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request ANALYZE answered in ' + str(datetime.utcnow() - time))
+    print('\033[93mRequest SUMUP answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/analyze")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + str(time))
-    print('\033[93mRequest type is ANALYZE: ' + request.question)
+    print('\033[93mRequest ANALYZE received at: ' + str(time))
+    print('Request is: ' + request.question)
     print('Request for sources: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request answered in ' + str(datetime.utcnow() - time))
+    print('\033[93mRequest ANALYZE answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
