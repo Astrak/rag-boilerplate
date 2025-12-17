@@ -42,22 +42,20 @@ class Graph:
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
 
     def retrieve(self, state: State):
-        print(f'GRAPH: Received question: {state["question"]}')
+        print(f'GRAPH: Retrieve: Received question: {state["question"]}')
         MODEL = "text-embedding-3-large"
         response = openai.embeddings.create(input=state["question"],model=MODEL)
         question_embeddings = response.data[0].embedding
         print('GRAPH: Successfully generated embeddings for question')
-        matching_documents = self.search_chunked_system(question_embeddings)
+        matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
     def generate(self, state: State):
-        print(f'GRAPH: Received question: {state["question"]}')
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        print(f'GRAPH: Found {len(context)} matching documents:')
         str_context = "\n\n".join(context)
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
@@ -72,7 +70,7 @@ class Graph:
         print(f"GRAPH: Answer :\n\n{response.content}")
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
-    def search_chunked_system(self, query_embedding):
+    def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
         for folder in self.folders:
             embeddings_folder = folder + 'embeddings/'
@@ -90,13 +88,12 @@ class Graph:
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])
-        # print('############')
-        # print('############')
-        # print('############')
         half_index = len(all_results) // 2
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
-        return [item[1] for item in relevancy_culled_list] 
+        context = [item[1] for item in relevancy_culled_list] 
+        print(f'GRAPH: Embeddings: Found {len(context)} matching documents')
+        return context
     
     def invoke(self, question, discussion = ""):
         return self.graph.invoke({"question": question, "discussion": discussion}) # type: ignore
