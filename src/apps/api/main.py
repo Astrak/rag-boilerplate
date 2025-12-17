@@ -5,6 +5,7 @@ from graph.main import Graph
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional, List
 from typing_extensions import TypedDict
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
@@ -12,8 +13,10 @@ import os
 
 folders = os.getenv("FOLDERS")
 if not folders:
-    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=folder1,folder2,folder3 ...")
-folders_list = [item.strip() for item in folders.split(",")]
+    raise EnvironmentError("FOLDERS not found. Run with FOLDERS='./folder1/,./folder2/,./folder3/'")
+folders_list = [folder_name.strip() for folder_name in folders.split(",")]
+
+DEFAULT_SOURCES = [folder_name.removeprefix('./').removesuffix('/') for folder_name in folders.split(',')]
 
 print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
 
@@ -57,7 +60,7 @@ def home():
 
 class SearchRequest(BaseModel):
     question: str
-    sources: list[str]
+    sources: Optional[List[str]] = DEFAULT_SOURCES
     llm: str
 
 class Resource(TypedDict):
