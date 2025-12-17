@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
+from datetime import datetime
 import os
 
 folders = os.getenv("FOLDERS")
@@ -65,33 +66,39 @@ class Resource(TypedDict):
 
 @app.post("/search")
 def search(request: SearchRequest):
-    print('sumup ("search") request received: ' + request.question)
+    time = datetime.utcnow()
+    print('Request received at: ' + time)
+    print('Request type is SUMUP: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
-    print('sources wanted: ' + sources)
+    print('Sources wanted: ' + sources)
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('similarity search finished')
+    print('Request answered in ' + datetime.utcnow() - time)
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/retrieve")
 def search(request: SearchRequest):
-    print('retrieve request received: ' + request.question)
+    time = datetime.utcnow()
+    print('Request received at: ' + time)
+    print('Request type is RETRIEVE: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
-    print('sources wanted: ' + sources)
+    print('Sources wanted: ' + sources)
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-    print('similarity search finished')
+    print('Sources found in ' + datetime.utcnow() - time)
     return {"resources": resources}
 
 @app.post("/analyze")
 def search(request: SearchRequest):
-    print('analyze request received: ' + request.question)
+    time = datetime.utcnow()
+    print('Request received at: ' + time)
+    print('Request type is ANALYZE: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
-    print('sources wanted: ' + sources)
+    print('Sources wanted: ' + sources)
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('similarity search finished')
+    print('Request answered in ' + datetime.utcnow() - time)
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }

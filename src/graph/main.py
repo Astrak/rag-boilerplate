@@ -52,9 +52,6 @@ class Graph:
 
     def generate(self, state: State):
         print('############')
-        print('############')
-        print('############')
-        print('############')
         print(f'Received question: {state["question"]}')
         context: list[str] = []
         resources: list[Resource] = []
@@ -92,8 +89,11 @@ class Graph:
                     if idx < len(chunk_texts):
                         all_results.append((score, chunk_texts[idx]))
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
-        for result in all_results:
-            print(result[0], result[1].metadata['source'])
+        # for result in all_results:
+        #     print(result[0], result[1].metadata['source'])
+        # print('############')
+        # print('############')
+        # print('############')
         half_index = len(all_results) // 2
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
