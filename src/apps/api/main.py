@@ -67,19 +67,19 @@ class Resource(TypedDict):
 @app.post("/search")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + time)
+    print('Request received at: ' + str(time))
     print('Request type is SUMUP: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('Sources wanted: ' + sources)
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request answered in ' + datetime.utcnow() - time)
+    print('Request answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/retrieve")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + time)
+    print('Request received at: ' + str(time))
     print('Request type is RETRIEVE: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('Sources wanted: ' + sources)
@@ -88,17 +88,17 @@ def search(request: SearchRequest):
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-    print('Sources found in ' + datetime.utcnow() - time)
+    print('Sources found in ' + str(datetime.utcnow() - time))
     return {"resources": resources}
 
 @app.post("/analyze")
 def search(request: SearchRequest):
     time = datetime.utcnow()
-    print('Request received at: ' + time)
+    print('Request received at: ' + str(time))
     print('Request type is ANALYZE: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('Sources wanted: ' + sources)
     analysis_graph.folders = sources.split(',')
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request answered in ' + datetime.utcnow() - time)
+    print('Request answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
