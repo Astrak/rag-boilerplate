@@ -76,8 +76,20 @@ def search(request: SearchRequest):
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-    print('Sources found in ' + str(datetime.utcnow() - time))
+    print('Sources RETRIEVE found in ' + str(datetime.utcnow() - time))
     return {"resources": resources}
+
+@app.post("/sumup")
+def search(request: SearchRequest):
+    time = datetime.utcnow()
+    print('Request received at: ' + str(time))
+    print('Request type is SUMUP: ' + request.question)
+    sources = ",".join([f"./{src}/" for src in request.sources])
+    print('Sources wanted: ' + sources)
+    search_graph.folders = sources.split(',')
+    result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    print('Request SUMUP answered in ' + str(datetime.utcnow() - time))
+    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/search")
 def search(request: SearchRequest):
@@ -88,7 +100,7 @@ def search(request: SearchRequest):
     print('Sources wanted: ' + sources)
     search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print('Request answered in ' + str(datetime.utcnow() - time))
+    print('Request ANALYZE answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/analyze")
