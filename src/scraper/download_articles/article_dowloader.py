@@ -1,13 +1,16 @@
 import csv
 import boto3
 import os
+import tempfile
 import requests
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
-from typing import cast, Optional
+from typing import cast, Optional, Dict
 import pickle
 import gzip
+from langchain_community.document_loaders import UnstructuredPDFLoader
 
 DELAY = 0.05 # delay to not Ddos the server
 
@@ -37,7 +40,7 @@ class ArticleDownloader:
                 self.urls.append(row[0])
         print(f"Starting to scrape {len(self.urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_url = {executor.submit(self.scrape_article, url): url for url in self.urls}
+            future_to_url = {executor.submit(self.scrape_article_or_pdf, url): url for url in self.urls}
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -113,3 +116,63 @@ class ArticleDownloader:
         except Exception as e:
             print(f"Error scraping {url}: {e}")
             return None
+        
+    def scrape_pdf(self, url: str) -> Optional[Dict]:
+        response = self.session.get(url, timeout=30, stream=True)
+        response.raise_for_status()
+        if "application/pdf" not in response.headers.get("Content-Type", "").lower():
+            raise ValueError("Expected PDF but got different content type")
+        suffix = os.path.splitext(urlparse(url).path)[1] or ".pdf"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    tmp_file.write(chunk)
+            tmp_path = tmp_file.name
+        try:
+            loader = UnstructuredPDFLoader(
+                tmp_path,
+                mode="elements", # Separates titles, tables, narrative, etc.
+                strategy="hi_res", # Higher accuracy (tables as HTML, better layout)
+                infer_table_structure=True,
+                # languages=["fr", "eng"],       
+            )
+            docs = loader.load()
+            full_text = "\n\n".join([doc.page_content for doc in docs])
+            title_elements = [doc for doc in docs if doc.metadata.get("category") == "Title"]
+            title = title_elements[0].page_content.strip() if title_elements else os.path.basename(urlparse(url).path) or "Untitled PDF"
+            article_data = {
+                "url": url,
+                "title": title,
+                "content": full_text,
+                "source_type": "pdf",
+                "metadata": {
+                    "page_count": len({doc.metadata.get("page_number", 1) for doc in docs}),
+                    "filename": os.path.basename(urlparse(url).path),
+                    # You can store the list of elements if you want more granular chunking later
+                    # "elements": docs,
+                },
+            }
+            print(full_text)
+            return article_data
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
+        try:
+            head_response = self.session.head(url, allow_redirects=True, timeout=10)
+            content_type = head_response.headers.get("Content-Type", "").lower()
+            is_pdf = url.lower().endswith(".pdf") or "application/pdf" in content_type
+            if is_pdf:
+                return self.scrape_pdf(url)
+            return self.scrape_article(url)
+        except Exception as e:
+            print(f"Error during initial check for {url}: {e}")
+            try:
+                return self.scrape_pdf(url)  # Might still be a PDF after redirects
+            except Exception:
+                try:
+                    return self.scrape_article(url)
+                except Exception as e2:
+                    print(f"Failed to scrape {url} as both PDF and HTML: {e2}")
+                    return None
