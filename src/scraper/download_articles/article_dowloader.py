@@ -10,7 +10,7 @@ import time
 from typing import cast, Optional, Dict
 import pickle
 import gzip
-from langchain_community.document_loaders import UnstructuredPDFLoader
+from scraper.download_articles.pdf_extractor import PDFAdobeExtractor
 
 DELAY = 0.05 # delay to not Ddos the server
 
@@ -62,6 +62,7 @@ class ArticleDownloader:
         return self.articles
     
     def scrape_article(self, url: str) -> Optional[dict]:
+        print("Scrape article")
         try:
             response = self.session.get(url, timeout=15)
             response.raise_for_status()
@@ -111,52 +112,44 @@ class ArticleDownloader:
                 'word_count': len(content.split()),
                 'scraped_at': time.time()
             }
-            print(f"Successfully scraped: {url} ({article_data['word_count']} words)")
+            print(f"Successfully scraped article: {url} ({article_data['word_count']} words)")
             return article_data
         except Exception as e:
             print(f"Error scraping {url}: {e}")
             return None
         
     def scrape_pdf(self, url: str) -> Optional[Dict]:
-        response = self.session.get(url, timeout=30, stream=True)
-        response.raise_for_status()
-        if "application/pdf" not in response.headers.get("Content-Type", "").lower():
-            raise ValueError("Expected PDF but got different content type")
-        suffix = os.path.splitext(urlparse(url).path)[1] or ".pdf"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    tmp_file.write(chunk)
-            tmp_path = tmp_file.name
+        print('Scrape PDF')
         try:
-            loader = UnstructuredPDFLoader(
-                tmp_path,
-                mode="elements", # Separates titles, tables, narrative, etc.
-                strategy="hi_res", # Higher accuracy (tables as HTML, better layout)
-                infer_table_structure=True,
-                # languages=["fr", "eng"],       
-            )
-            docs = loader.load()
-            full_text = "\n\n".join([doc.page_content for doc in docs])
-            title_elements = [doc for doc in docs if doc.metadata.get("category") == "Title"]
-            title = title_elements[0].page_content.strip() if title_elements else os.path.basename(urlparse(url).path) or "Untitled PDF"
-            article_data = {
-                "url": url,
-                "title": title,
-                "content": full_text,
-                "source_type": "pdf",
-                "metadata": {
-                    "page_count": len({doc.metadata.get("page_number", 1) for doc in docs}),
-                    "filename": os.path.basename(urlparse(url).path),
-                    # You can store the list of elements if you want more granular chunking later
-                    # "elements": docs,
-                },
-            }
-            print(full_text)
-            return article_data
-        finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+            response = self.session.get(url, timeout=30, stream=True)
+            response.raise_for_status()
+            if "application/pdf" not in response.headers.get("Content-Type", "").lower():
+                raise ValueError("Expected PDF but got different content type")
+            suffix = os.path.splitext(urlparse(url).path)[1] or ".pdf"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        tmp_file.write(chunk)
+                tmp_path = tmp_file.name
+            try:
+                extractor = PDFAdobeExtractor()
+                text = extractor.get_text_from_local_pdf(tmp_path)
+                article_data = {
+                    "url": url,
+                    "title": "PDF",
+                    "content": text,
+                    "source_type": "pdf",
+                    "metadata": {
+                        "filename": os.path.basename(urlparse(url).path),
+                    },
+                }
+                print(f"Successfully scraped PDF: {url}")
+                return article_data
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+        except Exception as e:
+            print(f"Error scraping PDF {url}: {e}")
 
     def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
         try:

@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 src/apps/api/analyze_prompt.py
 src/apps/api/env.py
+src/apps/api/ip_throttler_middleware.py
 src/apps/api/main.py
 src/apps/api/search_prompt.py
 src/apps/telegram/env.py
@@ -23,6 +24,7 @@ src/scraper/discover_urls/url_discoverer.py
 src/scraper/download_articles/__init__.py
 src/scraper/download_articles/article_dowloader.py
 src/scraper/download_articles/main.py
+src/scraper/download_articles/pdf_extractor.py
 src/scraper/vectorizer/__init__.py
 src/scraper/vectorizer/env.py
 src/scraper/vectorizer/main.py
