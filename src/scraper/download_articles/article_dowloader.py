@@ -45,7 +45,7 @@ class ArticleDownloader:
                 scraped_articles = pickle.load(f)
                 for article in scraped_articles:
                     if article['url'] in self.urls:
-                        self.articles.append(article_data)
+                        self.articles.append(article)
                         self.urls[:] = [x for x in self.urls if x != article['url']]
         print(f"Starting to scrape {len(self.urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
@@ -170,7 +170,7 @@ class ArticleDownloader:
             print(f"Error scraping PDF {url}: {e}")
 
     def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
-        if url.startswith("https://") and url.endswith(".pdf"):
+        if not url.startswith("https://") and url.endswith(".pdf"):
             return self.scrape_pdf(url)
         try:
             head_response = self.session.head(url, allow_redirects=True, timeout=10)
