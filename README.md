@@ -72,7 +72,7 @@ http://16.171.231.107:8000/analyze
 Clear the following:
 `pip install -m requirements.txt`
 
-## Scraper
+## Building the knowledge base
 
 The scraper is not entirely automatized so one can vet if the data is correctly picked from the targeted website.
 
@@ -84,24 +84,34 @@ The user must separately:
 - download articles texts,
 - then vectorize.
 
-### Discover URLs for a given website
+### Discover data
+
+#### Scrape website URLs for a given website
 
 Use the `UrlDiscoverer` and wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
 
+The expected file name for the pending steps will be called `url-list.csv`.
+
 ```bash
-BASE_URL='https://mywebsite.com' python3 -m scraper.discover_urls.main > scraped_urls.csv
+BASE_URL='https://mywebsite.com' python3 -m scraper.discover_urls.main > url-list.csv
 ```
 
-Then double check scraped_urls.csv, and make sure to review the following:
+Then double check `url-list.csv`, and make sure to review the following:
 
 - every line is a valid URL of an article to be stored and vectorized.
 - no empty lines remain
-- remove .jpg, .pdf, .xlsx and other links that are not web pages
+- remove .jpg, .xlsx and other links that are not web pages or PDFs.
 - remove pages that are not articles, like contact form etc (put it in EXCLUDED_PATHS beforehand)
 
 Store this file preciously. When updating the data, the easiest will be to append the last articles of the target to this file if feasible.
 
-### Record all articles
+#### Accumulate data locally (PDFs for now)
+
+Files can be read locally too, only PDFs for now. If a PDF is online, starting with `https://`, it can be kept in the `url-list.csv` above, it will be handled as such by the `ArticleDiscoverer` in the next step. But one can also create a local knowledge base of offline data, which the final LLM's output won't be able to give a link too but only a reference of edition.
+
+For this, create a folder `local-knowledge` within your domain folder, and just put the PDF there with the name you wish, like `my-pdf.pdf`. List them all with `ls` and copy-paste/append the list in the same `url-list.csv` than above. The next scripts will look at them automatically at `<current-folder>/local-knowledge/my-pdf.pdf` if their name don't start with `https://`.
+
+### Record documents
 
 Use the `ArticleDiscoverer` and wait for it to complete.
 

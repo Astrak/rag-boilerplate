@@ -121,19 +121,25 @@ class ArticleDownloader:
     def scrape_pdf(self, url: str) -> Optional[Dict]:
         print('Scrape PDF')
         try:
-            response = self.session.get(url, timeout=30, stream=True)
-            response.raise_for_status()
-            if "application/pdf" not in response.headers.get("Content-Type", "").lower():
-                raise ValueError("Expected PDF but got different content type")
-            suffix = os.path.splitext(urlparse(url).path)[1] or ".pdf"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        tmp_file.write(chunk)
-                tmp_path = tmp_file.name
+            path = ""
+            is_tmp = False
+            if not url.startswith("https://"):
+                path = f"{self.folder}local-knowledge/{url}"
+            else:
+                response = self.session.get(url, timeout=30, stream=True)
+                response.raise_for_status()
+                if "application/pdf" not in response.headers.get("Content-Type", "").lower():
+                    raise ValueError("Expected PDF but got different content type")
+                suffix = os.path.splitext(urlparse(url).path)[1] or ".pdf"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            tmp_file.write(chunk)
+                    path = tmp_file.name
+                    is_tmp = True
             try:
                 extractor = PDFAdobeExtractor()
-                text = extractor.get_text_from_local_pdf(tmp_path)
+                text = extractor.get_text_from_local_pdf(path)
                 article_data = {
                     "url": url,
                     "title": "PDF",
@@ -143,19 +149,24 @@ class ArticleDownloader:
                         "filename": os.path.basename(urlparse(url).path),
                     },
                 }
+                print(text)
                 print(f"Successfully scraped PDF: {url}")
                 return article_data
+            except Exception as e:
+                print(f"Error with extractor : {e}")
             finally:
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
+                if os.path.exists(path) and is_tmp:
+                    os.unlink(path)
         except Exception as e:
             print(f"Error scraping PDF {url}: {e}")
 
     def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
+        if url.startswith("https://") and url.endswith(".pdf"):
+            return self.scrape_pdf(url)
         try:
             head_response = self.session.head(url, allow_redirects=True, timeout=10)
-            content_type = head_response.headers.get("Content-Type", "").lower()
-            is_pdf = url.lower().endswith(".pdf") or "application/pdf" in content_type
+            content_type = head_response.headers.get("Content-Type", "")
+            is_pdf = url.endswith(".pdf") or "application/pdf" in content_type
             if is_pdf:
                 return self.scrape_pdf(url)
             return self.scrape_article(url)

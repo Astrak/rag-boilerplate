@@ -82,7 +82,7 @@ class PDFAdobeExtractor:
             else:
                 print(f"Error {response.status_code} when uploding PDF")
         except Exception as e:
-            print(f"Error uploading PDF: {e}")
+            print(f"Error uploading PDF: {e}, current path is {os.getcwd()}")
     
     def _extract(self):
         try:
