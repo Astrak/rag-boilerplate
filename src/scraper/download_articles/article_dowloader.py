@@ -39,6 +39,10 @@ class ArticleDownloader:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 self.urls.append(row[0])
+        # Populate urls from local-knowledge
+        if os.path.exists(f'{self.folder}local-knowledge'):
+            entries = os.listdir(f'{self.folder}local-knowledge')
+            self.urls.extend(entries)
         # Remove urls that are already in the gzip and add the scraped content to the new list to compile.
         if os.path.exists(f"{self.folder}scraped_articles.pkl.gz"):
             with gzip.open(f"{self.folder}scraped_articles.pkl.gz", 'rb') as f:

@@ -107,9 +107,7 @@ Store this file preciously. When updating the data, the easiest will be to appen
 
 #### Accumulate data locally (PDFs for now)
 
-Files can be read locally too, only PDFs for now. If a PDF is online, starting with `https://`, it can be kept in the `url-list.csv` above, it will be handled as such by the `ArticleDiscoverer` in the next step. But one can also create a local knowledge base of offline data, which the final LLM's output won't be able to give a link too but only a reference of edition.
-
-For this, create a folder `local-knowledge` within your domain folder, and just put the PDF there with the name you wish, like `my-pdf.pdf`. List them all with `ls` and copy-paste/append the list in the same `url-list.csv` than above. The next scripts will look at them automatically at `<current-folder>/local-knowledge/my-pdf.pdf` if their name don't start with `https://`.
+Files can be read locally too, only PDFs for now. If a PDF is online, starting with `https://`, it can be kept in the `url-list.csv` above, it will be handled as such by the `ArticleDiscoverer` in the next step. But one can also create a local knowledge base of offline data, which the final LLM's output won't be able to give a link to, but only a reference of edition. For this, create a folder `local-knowledge` within your domain folder, and just put the PDF there with the name you wish, like `my-pdf.pdf`.
 
 ### Record documents
 
