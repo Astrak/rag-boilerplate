@@ -34,10 +34,19 @@ class ArticleDownloader:
 
     def scrape_articles(self) -> list[dict]:
         self.urls: list[str] = []
+        # Populate urls from CSV.
         with open(f'{self.folder}url-list.csv', 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 self.urls.append(row[0])
+        # Remove urls that are already in the gzip and add the scraped content to the new list to compile.
+        if os.path.exists(f"{self.folder}scraped_articles.pkl.gz"):
+            with gzip.open(f"{self.folder}scraped_articles.pkl.gz", 'rb') as f:
+                scraped_articles = pickle.load(f)
+                for article in scraped_articles:
+                    if article['url'] in self.urls:
+                        self.articles.append(article_data)
+                        self.urls[:] = [x for x in self.urls if x != article['url']]
         print(f"Starting to scrape {len(self.urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_url = {executor.submit(self.scrape_article_or_pdf, url): url for url in self.urls}

@@ -80,7 +80,7 @@ class PDFAdobeExtractor:
             if response.status_code in (200, 204):
                 print("Successfully uploaded PDF")
             else:
-                print(f"Error {response.status_code} when uploding PDF")
+                print(f"Error {response.status_code} when uploading PDF")
         except Exception as e:
             print(f"Error uploading PDF: {e}, current path is {os.getcwd()}")
     
