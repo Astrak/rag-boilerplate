@@ -174,8 +174,11 @@ class ArticleDownloader:
             print(f"Error scraping PDF {url}: {e}")
 
     def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
-        if not url.startswith("https://") and url.endswith(".pdf"):
-            return self.scrape_pdf(url)
+        if not url.startswith("https://"):
+            if url.endswith(".pdf"):
+                return self.scrape_pdf(url)
+            else:
+                raise ValueError("Entry is neither a URL nor a PDF")
         try:
             head_response = self.session.head(url, allow_redirects=True, timeout=10)
             content_type = head_response.headers.get("Content-Type", "")
