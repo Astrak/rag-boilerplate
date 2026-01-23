@@ -21,7 +21,7 @@ class UrlDiscoverer:
         })
 
     def discover_urls(self):
-        retained_urls = set()
+        retained_urls = []
         to_visit = set()
         to_revisit = set()
         visited = set()
@@ -35,7 +35,7 @@ class UrlDiscoverer:
                     for row in csv_reader:
                         visited.add(row[0])
                         was_known = len(visited)
-                        retained_urls.add(row[0])
+                        retained_urls.append(row[0])
                     print(f"{len(visited)} pages already listed")
         print("\n\n\n\n")
         while to_visit:
@@ -53,17 +53,18 @@ class UrlDiscoverer:
                     if href and self._is_same_domain(href) and not href in visited and not href in to_visit:
                         to_visit.add(href)
                         if not self._is_url_excluded(href):
-                            retained_urls.add(href)
+                            retained_urls.append(href)
                 time.sleep(DELAY) 
             except Exception as e:
                 print(f"Error crawling {current_url}: {e}")
                 to_revisit.add(current_url)
             sys.stdout.write(f"\033[F\033[F\033[F\033[F")
             sys.stdout.write(f"\rVisited: {len(visited) - was_known}\n") 
-            sys.stdout.write(f"\rRecorded: {len(retained_urls) - was_known}\n") 
             sys.stdout.write(f"\rRemaining: {len(to_visit)}\n") 
             sys.stdout.write(f"\rFailed: {len(to_revisit)}\n") 
+            sys.stdout.write(f"\rRecorded: {len(retained_urls) - was_known}\n") 
             sys.stdout.flush()
+        retained_urls[:] = retained_urls[was_known:]
         with open(f'./{self.folder}/url-list.csv', "a", newline="") as f:
             writer = csv.writer(f)
             for item in retained_urls:
