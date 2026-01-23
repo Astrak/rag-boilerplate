@@ -6,6 +6,7 @@ import time
 import re
 import csv
 import sys
+import boto3
 import os
 from datetime import datetime, timedelta
 
@@ -20,6 +21,22 @@ class UrlDiscoverer:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (compatible; ArticleScraper/1.0)'
         })
+    
+    def sync_urls_to_bucket(self):
+        s3 = boto3.client('s3', region_name="eu-north-1")
+        print("Uploading url-list.csv to AWS backup...")
+        s3.upload_file(
+            Bucket="rag-faiss-index-bucket", 
+            Filename=f"knowledge-sources/{self.folder}/url-list.csv", 
+            Key=f"knowledge-sources/{self.folder}/url-list.csv"
+        )
+        print("Uploading blacklist.csv to AWS backup...")
+        s3.upload_file(
+            Bucket="rag-faiss-index-bucket", 
+            Filename=f"knowledge-sources/{self.folder}/blacklist.csv", 
+            Key=f"knowledge-sources/{self.folder}/blacklist.csv"
+        )
+        print("Synced\n")
 
     def discover_urls(self):
         if not "." in self.folder:
@@ -84,6 +101,7 @@ class UrlDiscoverer:
             for item in retained_urls:
                 writer.writerow([item])
         print(f"\nURL discovery complete. Verify the relevance of the {len(retained_urls)} last new entries, starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv")
+        self.sync_urls_to_bucket()
     
     def _ensure_url_is_absolute(self, url: str) -> str:
         is_absolute = bool(urlparse(url).netloc)

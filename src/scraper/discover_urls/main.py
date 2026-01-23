@@ -13,7 +13,6 @@ def main():
     for source in sources:
         discoverer = UrlDiscoverer(source, excluded_paths=excluded_paths)
         discoverer.discover_urls()
-    print("Done. Don't forget to backup the data before proceeding.")
 
 if __name__ == "__main__":
     main()
