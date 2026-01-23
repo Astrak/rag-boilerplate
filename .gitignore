@@ -2,3 +2,4 @@ __pycache__
 .venv
 url-list.csv
 knowledge-sources
+src/playground
