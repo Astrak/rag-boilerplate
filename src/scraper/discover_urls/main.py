@@ -5,7 +5,7 @@ folder = os.getenv("FOLDER")
 if not folder:
     raise EnvironmentError("FOLDER not found. Run with FOLDER=mywebsite.fr")
 
-EXCLUDED_PATHS = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "/page", ".xml"]
+EXCLUDED_PATHS = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "/page", ".xml", "#"]
 
 def main():
     discoverer = UrlDiscoverer(folder, excluded_paths=EXCLUDED_PATHS)
