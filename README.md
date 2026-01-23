@@ -88,20 +88,20 @@ The user must separately:
 
 #### Scrape website URLs for a given website
 
+This script will use an existing folder of the name of a website, `mywebsite.com` in the following example, and scrape the latter to discover or update its index of URLs. The folder name is what is used for the website URL. The index is created or updated within a file located at `mywebsite.com/url-list.csv`.
+
 Use the `UrlDiscoverer` and wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
 
-The expected file name for the pending steps will be called `url-list.csv`.
-
 ```bash
-BASE_URL='https://mywebsite.com' python3 -m scraper.discover_urls.main > url-list.csv
+FOLDER='mywebsite.com' python3 -m scraper.discover_urls.main
 ```
 
-Then double check `url-list.csv`, and make sure to review the following:
+Then double check `mywebsite.com/url-list.csv`, and make sure to review the following:
 
 - every line is a valid URL of an article to be stored and vectorized.
 - no empty lines remain
 - remove .jpg, .xlsx and other links that are not web pages or PDFs.
-- remove pages that are not articles, like contact form etc (put it in EXCLUDED_PATHS beforehand)
+- remove pages that are not articles, like contact form etc.
 
 Store this file preciously. When updating the data, the easiest will be to append the last articles of the target to this file if feasible.
 
