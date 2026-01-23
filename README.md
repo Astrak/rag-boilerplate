@@ -81,27 +81,33 @@ It is built to have an associated S3 bucket storing the url lists.
 The user must separately:
 
 - discover valid article urls of the target,
-- download articles texts,
+- download articles texts or extract PDFs,
 - then vectorize.
 
 ### Discover data
 
+The knowledge is stored in an untracked folder `./knowledge-sources/` at the source of the repo. Every online source knowledge mut be identified by its public domain: `my-website.com`.
+
 #### Scrape website URLs for a given website
 
-This script will use an existing folder of the name of a website, `mywebsite.com` in the following example, and scrape the latter to discover or update its index of URLs. The folder name is what is used for the website URL. The index is created or updated within a file located at `mywebsite.com/url-list.csv`.
-
-Use the `UrlDiscoverer` and wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
+To update all `url-list.csv` of all knowledge sources, just do:
 
 ```bash
-FOLDER='mywebsite.com' python3 -m scraper.discover_urls.main
+python3 -m scraper.discover_urls.main
 ```
 
-Then double check `mywebsite.com/url-list.csv`, and make sure to review the following:
+To scrawl for specific sources: target specific sources, `SOURCES="my-website.com,website2.com"` for instance (comma seprated). Indexes are created or updated for each source in a file at `<source>/url-list.csv`. A blacklist can be added of specific undesired URLs at `<source>/blacklist.csv`. Wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
+
+```bash
+SOURCES='my-website.com' python3 -m scraper.discover_urls.main
+```
+
+Then double check `my-website.com/url-list.csv`, and make sure to review the following:
 
 - every line is a valid URL of an article to be stored and vectorized.
 - no empty lines remain
-- remove .jpg, .xlsx and other links that are not web pages or PDFs.
-- remove pages that are not articles, like contact form etc.
+- remove .jpg, .xlsx and other links that are not web pages or PDFs. These paths are handled in `main.py` in an `excluded_paths` variable.
+- remove pages that are not articles, like contact forms, articles lists etc.
 
 Store this file preciously. When updating the data, the easiest will be to append the last articles of the target to this file if feasible.
 

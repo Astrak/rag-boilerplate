@@ -22,23 +22,34 @@ class UrlDiscoverer:
         })
 
     def discover_urls(self):
+        if not "." in self.folder:
+            print(f"{self.folder} is not a website, no URL will be explored, skipping.")
+            return 
+        print("Discovering URLS for " + self.folder)
+        full_path = f"./knowledge-sources/{self.folder}"
         retained_urls = []
         to_visit = set()
         to_revisit = set()
         visited = set()
+        blacklisted = set()
         was_known = 0
         timer = datetime.utcnow()
-        if "." in self.folder:
-            self.base_url = f"https://{self.folder}"
-            to_visit.add(self.base_url)
-            if os.path.exists(f'./{self.folder}/url-list.csv'):
-                with open(f'./{self.folder}/url-list.csv', 'r', encoding='utf-8') as file:
-                    csv_reader = csv.reader(file)
-                    for row in csv_reader:
-                        visited.add(row[0])
-                        was_known = len(visited)
-                        retained_urls.append(row[0])
-                    print(f"{len(visited)} pages already listed")
+        self.base_url = f"https://{self.folder}"
+        to_visit.add(self.base_url)
+        if os.path.exists(f'{full_path}/url-list.csv'):
+            with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
+                csv_reader = csv.reader(file)
+                for row in csv_reader:
+                    visited.add(row[0])
+                    was_known = len(visited)
+                    retained_urls.append(row[0])
+                print(f"{len(visited)} pages already listed")
+        if os.path.exists(f'{full_path}/blacklist.csv'):
+            with open(f'{full_path}/blacklist.csv', 'r', encoding='utf-8') as file:
+                csv_reader = csv.reader(file)
+                for row in csv_reader:
+                    blacklisted.add(row[0])
+                print(f"{len(blacklisted)} blacklisted URLs")
         print("\n\n\n\n\n\n")
         while to_visit:
             current_url = to_visit.pop()
@@ -54,7 +65,7 @@ class UrlDiscoverer:
                     href = self._ensure_url_is_absolute(href)
                     if href and self._is_same_domain(href) and not href in visited and not href in to_visit:
                         to_visit.add(href)
-                        if not self._is_url_excluded(href):
+                        if not self._is_url_excluded(href) and not href in blacklisted:
                             retained_urls.append(href)
                 sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F")
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
@@ -68,11 +79,11 @@ class UrlDiscoverer:
             except Exception as e:
                 to_revisit.add(current_url)
         retained_urls[:] = retained_urls[was_known:]
-        with open(f'./{self.folder}/url-list.csv', "a", newline="") as f:
+        with open(f'{full_path}/url-list.csv', "a", newline="") as f:
             writer = csv.writer(f)
             for item in retained_urls:
                 writer.writerow([item])
-        print("URL discovery complete")
+        print(f"\nURL discovery complete. Verify the relevance of the {len(retained_urls)} last new entries, starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv")
     
     def _ensure_url_is_absolute(self, url: str) -> str:
         is_absolute = bool(urlparse(url).netloc)

@@ -1,15 +1,19 @@
 from scraper.discover_urls.url_discoverer import UrlDiscoverer
 import os
 
-folder = os.getenv("FOLDER")
-if not folder:
-    raise EnvironmentError("FOLDER not found. Run with FOLDER=mywebsite.fr")
+sources = os.getenv("SOURCES")
+if not sources:
+    print("No SOURCES variable specified, updating all sources in the knowledge-sources folder:")
+    sources = os.listdir("./knowledge-sources/")
+    print(sources)
 
-EXCLUDED_PATHS = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "/page", ".xml", "#"]
+excluded_paths = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "/page", ".xml", "#"]
 
 def main():
-    discoverer = UrlDiscoverer(folder, excluded_paths=EXCLUDED_PATHS)
-    discoverer.discover_urls()
+    for source in sources:
+        discoverer = UrlDiscoverer(source, excluded_paths=excluded_paths)
+        discoverer.discover_urls()
+    print("Done. Don't forget to backup the data before proceeding.")
 
 if __name__ == "__main__":
     main()
