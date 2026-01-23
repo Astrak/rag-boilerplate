@@ -7,6 +7,7 @@ import re
 import csv
 import sys
 import os
+from datetime import datetime, timedelta
 
 DELAY = 0.05 # delay to not Ddos the server
 
@@ -26,6 +27,7 @@ class UrlDiscoverer:
         to_revisit = set()
         visited = set()
         was_known = 0
+        timer = datetime.utcnow()
         if "." in self.folder:
             self.base_url = f"https://{self.folder}"
             to_visit.add(self.base_url)
@@ -37,7 +39,7 @@ class UrlDiscoverer:
                         was_known = len(visited)
                         retained_urls.append(row[0])
                     print(f"{len(visited)} pages already listed")
-        print("\n\n\n\n")
+        print("\n\n\n\n\n\n")
         while to_visit:
             current_url = to_visit.pop()
             if current_url in visited:
@@ -54,16 +56,17 @@ class UrlDiscoverer:
                         to_visit.add(href)
                         if not self._is_url_excluded(href):
                             retained_urls.append(href)
+                sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F")
+                sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
+                sys.stdout.write(f"\rVisited: {len(visited) - was_known}\n") 
+                sys.stdout.write(f"\rRemaining: {len(to_visit)}\n") 
+                sys.stdout.write(f"\rFailed: {len(to_revisit)}\n") 
+                sys.stdout.write(f"\rRecorded: {len(retained_urls) - was_known}\n") 
+                sys.stdout.write(f"\rDuration: {timedelta(seconds=int((datetime.utcnow() - timer).total_seconds()))}\n") 
+                sys.stdout.flush()
                 time.sleep(DELAY) 
             except Exception as e:
-                print(f"Error crawling {current_url}: {e}")
                 to_revisit.add(current_url)
-            sys.stdout.write(f"\033[F\033[F\033[F\033[F")
-            sys.stdout.write(f"\rVisited: {len(visited) - was_known}\n") 
-            sys.stdout.write(f"\rRemaining: {len(to_visit)}\n") 
-            sys.stdout.write(f"\rFailed: {len(to_revisit)}\n") 
-            sys.stdout.write(f"\rRecorded: {len(retained_urls) - was_known}\n") 
-            sys.stdout.flush()
         retained_urls[:] = retained_urls[was_known:]
         with open(f'./{self.folder}/url-list.csv', "a", newline="") as f:
             writer = csv.writer(f)
