@@ -9,6 +9,7 @@ import sys
 import boto3
 import os
 from datetime import datetime, timedelta
+from collections import Counter
 
 DELAY = 0.05 # delay to not Ddos the server
 
@@ -24,25 +25,32 @@ class UrlDiscoverer:
     
     def sync_urls_to_bucket(self):
         s3 = boto3.client('s3', region_name="eu-north-1")
-        print("Uploading url-list.csv to AWS backup...")
-        s3.upload_file(
-            Bucket="rag-faiss-index-bucket", 
-            Filename=f"knowledge-sources/{self.folder}/url-list.csv", 
-            Key=f"knowledge-sources/{self.folder}/url-list.csv"
-        )
-        print("Uploading blacklist.csv to AWS backup...")
-        s3.upload_file(
-            Bucket="rag-faiss-index-bucket", 
-            Filename=f"knowledge-sources/{self.folder}/blacklist.csv", 
-            Key=f"knowledge-sources/{self.folder}/blacklist.csv"
-        )
-        print("Synced\n")
+        try:
+            print("Uploading url-list.csv to AWS backup...")
+            s3.upload_file(
+                Bucket="rag-faiss-index-bucket", 
+                Filename=f"knowledge-sources/{self.folder}/url-list.csv", 
+                Key=f"{self.folder}/url-list.csv"
+            )
+            print("Synced\n")
+        except Exception as e:
+            print("Failed to upload url-list.csv to AWS bucket")
+        try:
+            print("Uploading blacklist.csv to AWS backup...")
+            s3.upload_file(
+                Bucket="rag-faiss-index-bucket", 
+                Filename=f"knowledge-sources/{self.folder}/blacklist.csv", 
+                Key=f"{self.folder}/blacklist.csv"
+            )
+            print("Synced\n")
+        except Exception as e:
+            print("Failed to upload blacklist.csv to AWS bucket")
 
     def discover_urls(self):
         if not "." in self.folder:
             print(f"{self.folder} is not a website, no URL will be explored, skipping.")
             return 
-        print("Discovering URLS for " + self.folder)
+        print("Discovering URLs for " + self.folder)
         full_path = f"./knowledge-sources/{self.folder}"
         retained_urls = []
         to_visit = set()
@@ -58,8 +66,13 @@ class UrlDiscoverer:
                 csv_reader = csv.reader(file)
                 for row in csv_reader:
                     visited.add(row[0])
-                    was_known = len(visited)
                     retained_urls.append(row[0])
+                counts = Counter(retained_urls)
+                duplicates = [item for item, count in counts.items() if count > 1]
+                if len(duplicates):
+                    print(f"\033[93mWarning: The existing url-list.csv contains {len(duplicates)} duplicates: \033[00m", duplicates)
+                    was_known += len(duplicates)
+                was_known = len(visited)
                 print(f"{len(visited)} pages already listed")
         if os.path.exists(f'{full_path}/blacklist.csv'):
             with open(f'{full_path}/blacklist.csv', 'r', encoding='utf-8') as file:
@@ -69,7 +82,7 @@ class UrlDiscoverer:
                 print(f"{len(blacklisted)} blacklisted URLs")
         print("\n\n\n\n\n\n")
         while to_visit:
-            current_url = to_visit.pop()
+            current_url = cast(str, to_visit.pop())
             if current_url in visited:
                 continue
             try:
@@ -77,13 +90,23 @@ class UrlDiscoverer:
                 response.raise_for_status()
                 visited.add(current_url)
                 soup = BeautifulSoup(response.content, 'html.parser')
+                page_links = set()
                 for link in soup.select("a[href]"):
                     href = cast(str, link.get('href'))
                     href = self._ensure_url_is_absolute(href)
+                    if self._is_same_domain(href) and href not in blacklisted and href not in visited:
+                        page_links.add(href)
                     if href and self._is_same_domain(href) and not href in visited and not href in to_visit:
                         to_visit.add(href)
                         if not self._is_url_excluded(href) and not href in blacklisted:
                             retained_urls.append(href)
+                # if the only remaining links in a page are further pages of search results, 
+                # typically of the form "page/5" in the URL, 
+                # don't look further into similarly prefixed pages.
+                # (supposes that no line of older articles in an existing url-list.csv are removed)
+                if re.search("/page/",current_url) and len(page_links) and all("/page/" in url for url in page_links):
+                    prefix = current_url.split("/page/")[0]
+                    to_visit = {url for url in to_visit if not url.startswith(prefix)}
                 sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F")
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
                 sys.stdout.write(f"\rVisited: {len(visited) - was_known}\n") 
