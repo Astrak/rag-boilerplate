@@ -81,6 +81,7 @@ class UrlDiscoverer:
                 for row in csv_reader:
                     blacklisted.add(row[0])
                 print(f"{len(blacklisted)} blacklisted URLs")
+        # TODO Also add a forbid.csv list of pages not to even visit
         print("\n\n\n\n\n\n")
         while to_visit:
             current_url = cast(str, to_visit.pop())
@@ -89,6 +90,7 @@ class UrlDiscoverer:
             try:
                 response = self.session.get(current_url, timeout=10)
                 response.raise_for_status()
+                # TODO if there was a redirect remove this URL and if it also was in another set or array, modify it as well.
                 visited.add(current_url)
                 soup = BeautifulSoup(response.content, 'html.parser')
                 page_links = set()
@@ -96,6 +98,7 @@ class UrlDiscoverer:
                 for href in links:
                     href = self._ensure_url_is_absolute(href)
                     href = href.split('#')[0] # Discard hashes
+                    href = href.split('?')[0] # Discard queries
                     split = href.split('://')
                     split[1] = split[1].replace("//","/") # Ensure no malformed link is kept
                     href = "://".join(split)
@@ -112,8 +115,13 @@ class UrlDiscoverer:
                 # don't look further into similarly prefixed pages.
                 # (supposes that no line of older articles in an existing url-list.csv are removed)
                 # TODO: check if a number follows with regexp otherwise it may also just be a url like /page/my-article
-                if re.search("/page/",current_url) and len(page_links) and all("/page/" in url for url in page_links):
-                    prefix = current_url.split("/page/")[0]
+                if re.search("/page/", current_url) and len(page_links) and all("/page/" in url for url in page_links):
+                    prefix = current_url.split("/page/")[0] + "/page/"
+                    # TODO This is wrong because when a first page shows links to page 2, 3, and then 10,
+                    # Then the next pages to open are 2, 3 and 10: pages 4 and following will be visited after 10
+                    # If page 10 is already visited but not pages between 4 and 10, new links may not be discovered.
+                    # => Sort the urls and always visit the first in alphanumerical order, and only delete the similar
+                    # ones that are next 
                     to_visit = {url for url in to_visit if not url.startswith(prefix)}
                 sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F")
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
