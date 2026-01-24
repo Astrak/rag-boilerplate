@@ -101,6 +101,13 @@ class UrlDiscoverer:
             try:
                 response = self.session.get(current_url, timeout=10)
                 response.raise_for_status()
+                redirected_url = response.url
+                if redirected_url != current_url:
+                    current_url = redirected_url
+                    if current_url in to_visit:
+                        to_visit.remove(current_url)
+                    if current_url in visited:
+                        continue
                 visited.add(current_url)
                 soup = BeautifulSoup(response.content, 'html.parser')
                 links = {cast(str, href.get('href')) for href in soup.select("a[href]")}
@@ -169,7 +176,7 @@ class UrlDiscoverer:
                 writer = csv.writer(f)
                 for item in retained_urls:
                     writer.writerow([item])
-            print(f"\033[92m{len(retained_urls)} new URLs discovered. Verify their relevance starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv\033[0m")
+            print(f"\033[92m{len(retained_urls)} new URLs discovered. Verify their relevance starting at line {was_known + 1}, in knowledge-sources/{self.folder}/url-list.csv\033[0m")
             self.sync_urls_to_bucket()
         else:
             print("\033[92mNo URLs recorded\033[0m")
