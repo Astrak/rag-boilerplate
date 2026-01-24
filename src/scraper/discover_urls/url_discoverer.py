@@ -52,7 +52,7 @@ class UrlDiscoverer:
         if not "." in self.folder:
             print(f"{self.folder} is not a website, no URL will be explored, skipping.")
             return 
-        print("Discovering URLs for " + self.folder)
+        print("Discovering URLs for \033[93m" + self.folder + "\033[0m")
         full_path = f"./knowledge-sources/{self.folder}"
         retained_urls = []
         to_visit = []
@@ -101,7 +101,6 @@ class UrlDiscoverer:
             try:
                 response = self.session.get(current_url, timeout=10)
                 response.raise_for_status()
-                # TODO if there was a redirect remove this URL and if it also was in another set or array, modify it as well.
                 visited.add(current_url)
                 soup = BeautifulSoup(response.content, 'html.parser')
                 links = {cast(str, href.get('href')) for href in soup.select("a[href]")}
@@ -112,8 +111,8 @@ class UrlDiscoverer:
                     if "mailto:" in href:
                         continue
                     href = self._ensure_url_is_absolute(href)
-                    href = href.split('#')[0] # Discard hashes
-                    href = href.split('?')[0] # Discard queries
+                    href = href.split('#')[0]
+                    href = href.split('?')[0]
                     split = href.split('://')
                     split[1] = split[1].replace("//","/") # Ensure no malformed link is kept
                     href = "://".join(split)
@@ -149,8 +148,8 @@ class UrlDiscoverer:
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
                 sys.stdout.write(f"\r\033[KVisited: {len(visited) - was_known}\n") 
                 sys.stdout.write(f"\r\033[KRemaining: {len(to_visit)}\n") 
-                sys.stdout.write(f"\r\033[KFailed: {len(to_revisit)}\n") 
-                sys.stdout.write(f"\r\033[KRecorded: {len(retained_urls) - was_known}\n") 
+                sys.stdout.write(f"\r\033[K\033[93mFailed: {len(to_revisit)}\033[0m\n") 
+                sys.stdout.write(f"\r\033[K\033[92mRecorded: {len(retained_urls) - was_known}\033[0m\n") 
                 sys.stdout.write(f"\r\033[KDuration: {timedelta(seconds=int((datetime.utcnow() - timer).total_seconds()))}\n") 
                 sys.stdout.flush()
                 time.sleep(DELAY) 
@@ -161,8 +160,8 @@ class UrlDiscoverer:
         retained_urls[:] = retained_urls[was_known:]
         sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
         sys.stdout.write(f"\r\033[KVisited: {len(visited) - was_known}\n") 
-        sys.stdout.write(f"\r\033[KRecorded: {len(retained_urls)}\n") 
-        sys.stdout.write(f"\r\033[KFailed: {len(to_revisit)}\n") 
+        sys.stdout.write(f"\r\033[K\033[92mRecorded: {len(retained_urls)}\033[0m\n") 
+        sys.stdout.write(f"\r\033[K\033[91mFailed: {len(to_revisit)}\033[0m\n") 
         sys.stdout.write(f"\r\033[KDuration: {timedelta(seconds=int((datetime.utcnow() - timer).total_seconds()))}\n") 
         sys.stdout.flush()
         if len(retained_urls):
@@ -170,12 +169,12 @@ class UrlDiscoverer:
                 writer = csv.writer(f)
                 for item in retained_urls:
                     writer.writerow([item])
-            print(f"URL discovery complete. Verify the relevance of the {len(retained_urls)} last new entries, starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv")
+            print(f"\033[92m{len(retained_urls)} new URLs discovered. Verify their relevance starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv\033[0m")
             self.sync_urls_to_bucket()
         else:
-            print("No URLs recorded")
+            print("\033[92mNo URLs recorded\033[0m")
         if len(to_revisit):
-            print("\033[93mFailed URLs:\033[00m")
+            print("\033[91mFailed URLs:\033[00m")
             for failed in to_revisit:
                 print(failed)
         
