@@ -9,7 +9,7 @@ else:
     sources = sources.split(',')
 print("Scrape sources: ", sources)
 
-excluded_paths = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "/page", ".xml", "#"]
+excluded_paths = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "wp-admin", "/page", ".xml", "#"]
 
 def main():
     for source in sources:
