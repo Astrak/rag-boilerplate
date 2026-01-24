@@ -28,25 +28,25 @@ class UrlDiscoverer:
     def sync_urls_to_bucket(self):
         s3 = boto3.client('s3', region_name="eu-north-1")
         try:
-            print("Uploading url-list.csv to AWS backup...")
+            print("\033[KUploading url-list.csv to AWS backup...")
             s3.upload_file(
                 Bucket="rag-faiss-index-bucket", 
                 Filename=f"knowledge-sources/{self.folder}/url-list.csv", 
                 Key=f"{self.folder}/url-list.csv"
             )
-            print("Synced")
+            print("\033[KSynced")
         except Exception as e:
-            print("Failed to upload url-list.csv to AWS bucket")
+            print("\033[KFailed to upload url-list.csv to AWS bucket")
         try:
-            print("Uploading blacklist.csv to AWS backup...")
+            print("\033[KUploading blacklist.csv to AWS backup...")
             s3.upload_file(
                 Bucket="rag-faiss-index-bucket", 
                 Filename=f"knowledge-sources/{self.folder}/blacklist.csv", 
                 Key=f"{self.folder}/blacklist.csv"
             )
-            print("Synced")
+            print("\033[KSynced")
         except Exception as e:
-            print("Failed to upload blacklist.csv to AWS bucket")
+            print("\033[KFailed to upload blacklist.csv to AWS bucket")
 
     def discover_urls(self):
         if not "." in self.folder:
