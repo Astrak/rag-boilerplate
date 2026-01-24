@@ -59,7 +59,8 @@ class UrlDiscoverer:
         blacklisted = set()
         was_known = 0
         timer = datetime.utcnow()
-        self.base_url = f"https://{self.folder}"
+        response = self.session.get(f"https://{self.folder}", timeout=10)
+        self.base_url = response.url # Use main domain that the folder domain redirects to (with or without www)
         to_visit.add(self.base_url)
         if os.path.exists(f'{full_path}/url-list.csv'):
             with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
@@ -91,8 +92,8 @@ class UrlDiscoverer:
                 visited.add(current_url)
                 soup = BeautifulSoup(response.content, 'html.parser')
                 page_links = set()
-                for link in soup.select("a[href]"):
-                    href = cast(str, link.get('href'))
+                links = [cast(str, href.get('href')) for href in soup.select("a[href]")]
+                for href in links:
                     href = self._ensure_url_is_absolute(href)
                     href = href.split('#')[0] # Discard hashes
                     split = href.split('://')
@@ -101,7 +102,8 @@ class UrlDiscoverer:
                     if self._is_same_domain(href) and href not in blacklisted and href not in visited:
                         page_links.add(href)
                     if href and self._is_same_domain(href) and not href in visited and not href in to_visit:
-                        if not any(sub in href for sub in [".pdf", ".png", ".jpg", ".jpeg", ".xlsx", "/wp-admin", "/wp-login"]): # Only visit html
+                        exclude_visits = [".pdf", ".png", ".jpg", ".jpeg", ".xlsx", "/wp-admin", "/wp-login"]
+                        if not any(sub in href for sub in exclude_visits): 
                             to_visit.add(href)
                         if not self._is_url_excluded(href) and not href in blacklisted and not href in retained_urls:
                             retained_urls.append(href)
@@ -123,6 +125,7 @@ class UrlDiscoverer:
                 sys.stdout.flush()
                 time.sleep(DELAY) 
             except Exception as e:
+                print(current_url, e)
                 to_revisit.add(current_url)
                 retained_urls[:] = [url for url in retained_urls if not current_url == url]
         retained_urls[:] = retained_urls[was_known:]
@@ -153,7 +156,8 @@ class UrlDiscoverer:
         return url
         
     def _is_same_domain(self, url: str) -> bool:
-        return urlparse(url).netloc == urlparse(self.base_url).netloc
+        domain = urlparse(self.base_url).netloc
+        return urlparse(url).netloc in [domain, "www." + domain] 
 
     def _is_url_excluded(self, url: str) -> bool:
         parsed_url = urlparse(url)
