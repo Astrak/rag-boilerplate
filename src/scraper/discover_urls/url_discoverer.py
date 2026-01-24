@@ -12,11 +12,13 @@ from datetime import datetime, timedelta
 from collections import Counter
 
 DELAY = 0.05 # delay to not Ddos the server
+IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml"}
+DONT_VISIT_BUT_RECORD = {".pdf"}
+VISIT_BUT_DONT_RECORD = {"/page/"}
 
 class UrlDiscoverer:
-    def __init__(self, folder, excluded_paths):
+    def __init__(self, folder):
         self.folder = folder
-        self.excluded_paths = excluded_paths
         self.known_urls = []
         self.session = requests.Session()
         self.session.headers.update({
@@ -56,7 +58,8 @@ class UrlDiscoverer:
         to_visit = set()
         to_revisit = set()
         visited = set()
-        blacklisted = set()
+        ignored = IGNORE
+        visit_but_dont_record = VISIT_BUT_DONT_RECORD
         was_known = 0
         timer = datetime.utcnow()
         response = self.session.get(f"https://{self.folder}", timeout=10)
@@ -78,10 +81,19 @@ class UrlDiscoverer:
         if os.path.exists(f'{full_path}/blacklist.csv'):
             with open(f'{full_path}/blacklist.csv', 'r', encoding='utf-8') as file:
                 csv_reader = csv.reader(file)
+                counter = 0
                 for row in csv_reader:
-                    blacklisted.add(row[0])
-                print(f"{len(blacklisted)} blacklisted URLs")
-        # TODO Also add a forbid.csv list of pages not to even visit
+                    counter += 1
+                    visit_but_dont_record.add(row[0])
+                print(f"{counter} blacklisted URLs")
+        if os.path.exists(f'{full_path}/ignore.csv'):
+            with open(f'{full_path}/ignore.csv', 'r', encoding='utf-8') as file:
+                csv_reader = csv.reader(file)
+                counter = 0
+                for row in csv_reader:
+                    counter += 1
+                    ignored.add(row[0])
+            print(f"{counter} custom ignored keywords")                
         print("\n\n\n\n\n\n")
         while to_visit:
             current_url = cast(str, to_visit.pop())
@@ -102,13 +114,14 @@ class UrlDiscoverer:
                     split = href.split('://')
                     split[1] = split[1].replace("//","/") # Ensure no malformed link is kept
                     href = "://".join(split)
-                    if self._is_same_domain(href) and href not in blacklisted and href not in visited:
+                    is_ignored = any(sub in href for sub in ignored)
+                    dont_visit_but_record = any(sub in href for sub in DONT_VISIT_BUT_RECORD)
+                    dont_record_but_visit = any(sub in href for sub in visit_but_dont_record)
+                    if self._is_same_domain(href) and not is_ignored and href not in visited:
                         page_links.add(href)
-                    if href and self._is_same_domain(href) and not href in visited and not href in to_visit:
-                        exclude_visits = [".pdf", ".png", ".jpg", ".jpeg", ".xlsx", "/wp-admin", "/wp-login"]
-                        if not any(sub in href for sub in exclude_visits): 
+                        if href not in to_visit and not dont_visit_but_record:
                             to_visit.add(href)
-                        if not self._is_url_excluded(href) and not href in blacklisted and not href in retained_urls:
+                        if href not in retained_urls and not dont_record_but_visit:
                             retained_urls.append(href)
                 # if the only remaining links in a page are further pages of search results, 
                 # typically of the form "page/5" in the URL, 
@@ -165,14 +178,4 @@ class UrlDiscoverer:
         
     def _is_same_domain(self, url: str) -> bool:
         domain = urlparse(self.base_url).netloc
-        return urlparse(url).netloc in [domain, "www." + domain] 
-
-    def _is_url_excluded(self, url: str) -> bool:
-        parsed_url = urlparse(url)
-        path = parsed_url.path
-        for excluded_path in self.excluded_paths:
-            if excluded_path.startswith('/') and path.startswith(excluded_path):
-                return True
-            elif re.search(excluded_path, path):
-                return True
-        return False
+        return urlparse(url).netloc in [domain, "www." + domain]

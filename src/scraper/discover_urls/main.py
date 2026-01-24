@@ -9,11 +9,9 @@ else:
     sources = sources.split(',')
 print("Scrape sources: ", sources)
 
-excluded_paths = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "wp-admin", "/page", ".xml", "#"]
-
 def main():
     for source in sources:
-        discoverer = UrlDiscoverer(source, excluded_paths=excluded_paths)
+        discoverer = UrlDiscoverer(source)
         discoverer.discover_urls()
 
 if __name__ == "__main__":
