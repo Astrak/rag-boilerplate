@@ -119,12 +119,15 @@ class UrlDiscoverer:
             except Exception as e:
                 to_revisit.add(current_url)
         retained_urls[:] = retained_urls[was_known:]
-        with open(f'{full_path}/url-list.csv', "a", newline="") as f:
-            writer = csv.writer(f)
-            for item in retained_urls:
-                writer.writerow([item])
-        print(f"\nURL discovery complete. Verify the relevance of the {len(retained_urls)} last new entries, starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv")
-        self.sync_urls_to_bucket()
+        if len(retained_urls):
+            with open(f'{full_path}/url-list.csv', "a", newline="") as f:
+                writer = csv.writer(f)
+                for item in retained_urls:
+                    writer.writerow([item])
+            print(f"\nURL discovery complete. Verify the relevance of the {len(retained_urls)} last new entries, starting at line {was_known}, in knowledge-sources/{self.folder}/url-list.csv")
+            self.sync_urls_to_bucket()
+        else:
+            print("No URLs recorded\n")
     
     def _ensure_url_is_absolute(self, url: str) -> str:
         is_absolute = bool(urlparse(url).netloc)

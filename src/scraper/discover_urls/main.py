@@ -5,7 +5,9 @@ sources = os.getenv("SOURCES")
 if not sources:
     print("No SOURCES variable specified, updating all sources in the knowledge-sources folder:")
     sources = os.listdir("./knowledge-sources/")
-    print(sources)
+else:
+    sources = sources.split(',')
+print("Scrape sources: ", sources)
 
 excluded_paths = [".png", ".jpg", ".jpeg", ".xlsx", "/wp-login", "/page", ".xml", "#"]
 
