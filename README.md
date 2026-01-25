@@ -86,7 +86,7 @@ The user must separately:
 
 ### Discover data
 
-The knowledge is stored in an untracked folder `./knowledge-sources/` at the source of the repo. Every online source knowledge mut be identified by its public domain: `my-website.com`.
+The knowledge is stored in an untracked folder `./knowledge-sources/` at the source of the repo. Every online source knowledge must be identified by its public domain: `my-website.com`.
 
 #### Scrape website URLs for a given website
 
@@ -96,7 +96,7 @@ To update all `url-list.csv` of all knowledge sources, just do:
 python3 -m scraper.discover_urls.main
 ```
 
-To scrawl for specific sources: target specific sources, `SOURCES="my-website.com,website2.com"` for instance (comma seprated). Indexes are created or updated for each source in a file at `<source>/url-list.csv`. A blacklist can be added of specific undesired URLs at `<source>/blacklist.csv`. Wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
+To scrawl for specific sources: target specific sources, `SOURCES="my-website.com,website2.com"` for instance (comma separated). Indexes are created or updated for each source in a file at `<source>/url-list.csv`. A blacklist can be added of specific URLs not to record at `<source>/blacklist.csv`, and URLs or patterns that must not be explored in `<source>/ignore.csv` (like `/tag/`). It may be long to build the initial URL list but updating is optimized.
 
 ```bash
 SOURCES='my-website.com' python3 -m scraper.discover_urls.main
@@ -105,9 +105,8 @@ SOURCES='my-website.com' python3 -m scraper.discover_urls.main
 Then double check `my-website.com/url-list.csv`, and make sure to review the following:
 
 - every line is a valid URL of an article to be stored and vectorized.
-- no empty lines remain
-- remove .jpg, .xlsx and other links that are not web pages or PDFs. These paths are handled in `main.py` in an `excluded_paths` variable.
-- remove pages that are not articles, like contact forms, articles lists etc.
+- no empty lines remain except the last
+- remove pages that are not articles, like contact forms, articles lists etc., put them in `blacklist.csv` or `ignore.csv`
 
 Store this file preciously. When updating the data, the easiest will be to append the last articles of the target to this file if feasible.
 
