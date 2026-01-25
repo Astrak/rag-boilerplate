@@ -89,6 +89,10 @@ class ArticleDownloader:
         with gzip.open(f"{full_path}/scraped_articles.pkl.gz", 'wb') as f:
             pickle.dump(self.articles, f)
         print(f"Saved {len(self.articles)} dictionaries to {full_path}/scraped-articles.pkl.gz (compressed)")
+        if len(self.failed_urls):
+            print(f"\033[91m{len(self.failed_urls)} failed lookups:\033[0m")
+            for url in self.failed_urls:
+                print(url)
         return self.articles
     
     def scrape_article(self, url: str) -> Optional[dict]:
@@ -98,13 +102,14 @@ class ArticleDownloader:
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             title = None
-            title_elem = cast(Tag, soup.select_one(self.selectors['title']))
-            if title_elem:
-                title = title_elem.get_text(strip=True)
-                if self.log_articles == 'true':
-                    print("Title: ", title)
-            if not title:
-                print(f"No title found for {url}")
+            if self.selectors['title']:
+                title_elem = cast(Tag, soup.select_one(self.selectors['title']))
+                if title_elem:
+                    title = title_elem.get_text(strip=True)
+                    if self.log_articles == 'true':
+                        print("Title: ", title)
+                if not title:
+                    print(f"No title found for {url}")
             
             content = None
             content_elem = soup.select_one(self.selectors['article'])
@@ -116,21 +121,23 @@ class ArticleDownloader:
                     print(content)
             if not content:
                 print(f"\033[91mNo content found for {url} with selector: {self.selectors['article']}\033[0m")
+                self.failed_urls.add(url)
                 return None
             
             date = None
-            date_elem = cast(Tag, soup.select_one(self.selectors['date']))
-            if date_elem:
-                date = date_elem.get_text(strip=True)
-                if self.log_articles == 'true':
-                    print("Date: ", date)
-            
-            author = None
-            author_element = cast(Tag, soup.select_one(self.selectors['author']))
-            if author_element:
-                author = author_element.get_text(strip=True)
-                if self.log_articles == 'true':
-                    print("Author: ", author)
+            if self.selectors['date']:
+                date_elem = cast(Tag, soup.select_one(self.selectors['date']))
+                if date_elem:
+                    date = date_elem.get_text(strip=True)
+                    if self.log_articles == 'true':
+                        print("Date: ", date)
+            if self.selectors['author']:
+                author = None
+                author_element = cast(Tag, soup.select_one(self.selectors['author']))
+                if author_element:
+                    author = author_element.get_text(strip=True)
+                    if self.log_articles == 'true':
+                        print("Author: ", author)
 
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
