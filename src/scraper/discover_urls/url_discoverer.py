@@ -10,6 +10,7 @@ import boto3
 import os
 from datetime import datetime, timedelta
 from collections import Counter
+from urllib.parse import quote
 
 DELAY = 0.05 # delay to not Ddos the server
 IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml"}
@@ -47,6 +48,16 @@ class UrlDiscoverer:
             print("\033[KSynced")
         except Exception as e:
             print("\033[KFailed to upload blacklist.csv to AWS bucket")
+        try:
+            print("\033[KUploading ignore.csv to AWS backup...")
+            s3.upload_file(
+                Bucket="rag-faiss-index-bucket", 
+                Filename=f"knowledge-sources/{self.folder}/ignore.csv", 
+                Key=f"{self.folder}/ignore.csv"
+            )
+            print("\033[KSynced")
+        except Exception as e:
+            print("\033[KFailed to upload ignore.csv to AWS bucket")
 
     def discover_urls(self):
         if not "." in self.folder:
@@ -96,6 +107,7 @@ class UrlDiscoverer:
         print("\n\n\n\n\n\n")
         while to_visit:
             current_url = cast(str, to_visit.pop())
+            original_url = current_url
             if current_url in visited:
                 continue
             try:
@@ -123,6 +135,7 @@ class UrlDiscoverer:
                     split = href.split('://')
                     split[1] = split[1].replace("//","/") # Ensure no malformed link is kept
                     href = "://".join(split)
+                    href = quote(href)
                     is_ignored = any(sub in href for sub in ignored)
                     dont_visit_but_record = any(sub in href for sub in DONT_VISIT_BUT_RECORD)
                     dont_record_but_visit = any(sub in href for sub in visit_but_dont_record) or href in blacklisted
@@ -161,7 +174,15 @@ class UrlDiscoverer:
                 sys.stdout.flush()
                 time.sleep(DELAY) 
             except Exception as e:
-                print(current_url, e)
+                sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
+                sys.stdout.write(f"\r\033[K\033[93mError: {current_url if original_url == current_url else f"{original_url} (routed)"} : {e}\n\033[K\n") 
+                sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
+                sys.stdout.write(f"\r\033[KVisited: {len(visited) - was_known}\n") 
+                sys.stdout.write(f"\r\033[KRemaining: {len(to_visit)}\n") 
+                sys.stdout.write(f"\r\033[K\033[93mFailed: {len(to_revisit)}\033[0m\n") 
+                sys.stdout.write(f"\r\033[K\033[92mRecorded: {len(retained_urls) - was_known}\033[0m\n") 
+                sys.stdout.write(f"\r\033[KDuration: {timedelta(seconds=int((datetime.utcnow() - timer).total_seconds()))}\n") 
+                sys.stdout.flush()
                 to_revisit.add(current_url)
                 retained_urls[:] = [url for url in retained_urls if not current_url == url]
         retained_urls[:] = retained_urls[was_known:]
