@@ -1,4 +1,4 @@
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, quote
 import requests
 from bs4 import BeautifulSoup, Tag
 from typing import cast
@@ -10,12 +10,11 @@ import boto3
 import os
 from datetime import datetime, timedelta
 from collections import Counter
-from urllib.parse import quote
 
 DELAY = 0.05 # delay to not Ddos the server
 IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml"}
 DONT_VISIT_BUT_RECORD = {".pdf"}
-VISIT_BUT_DONT_RECORD = {"/page/"}
+VISIT_BUT_DONT_RECORD = {"/page/", "?page="}
 
 class UrlDiscoverer:
     def __init__(self, folder):
@@ -131,11 +130,12 @@ class UrlDiscoverer:
                         continue
                     href = self._ensure_url_is_absolute(href)
                     href = href.split('#')[0]
-                    href = href.split('?')[0]
+                    if all(sub not in href for sub in ["id=","page="]):
+                        href = href.split('?')[0]
                     split = href.split('://')
                     split[1] = split[1].replace("//","/") # Ensure no malformed link is kept
                     href = "://".join(split)
-                    href = quote(href)
+                    href = quote(href, safe=":/é?=")
                     is_ignored = any(sub in href for sub in ignored)
                     dont_visit_but_record = any(sub in href for sub in DONT_VISIT_BUT_RECORD)
                     dont_record_but_visit = any(sub in href for sub in visit_but_dont_record) or href in blacklisted
