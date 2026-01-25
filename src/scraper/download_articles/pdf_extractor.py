@@ -18,7 +18,8 @@ class PDFAdobeExtractor:
         self._resource_status_url = ""
         self._download_uri = ""
 
-    def get_text_from_local_pdf(self, path:str) -> str:
+    def get_text_from_local_pdf(self, path: str, url: str) -> str:
+        self.url = url
         self._get_access_token()
         self._get_uploadUri_and_assetID()
         self._upload(path)
@@ -77,10 +78,10 @@ class PDFAdobeExtractor:
                     headers=headers,
                     timeout=120
                 )
-            if response.status_code in (200, 204):
-                print("Successfully uploaded PDF")
-            else:
-                print(f"Error {response.status_code} when uploading PDF")
+                if response.status_code in (200, 204):
+                    print("Uploaded PDF: ", self.url)
+                else:
+                    print(f"Error {response.status_code} when uploading PDF")
         except Exception as e:
             print(f"Error uploading PDF: {e}, current path is {os.getcwd()}")
     

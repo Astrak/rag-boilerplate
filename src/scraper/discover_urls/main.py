@@ -10,6 +10,7 @@ else:
 print("Scrape sources: ", sources)
 
 def main():
+    # TODO: sync from AWS?
     for source in sources:
         discoverer = UrlDiscoverer(source)
         discoverer.discover_urls()

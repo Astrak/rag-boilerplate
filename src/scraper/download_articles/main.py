@@ -1,21 +1,23 @@
 from src.scraper.download_articles.article_dowloader import ArticleDownloader
 import os
 
-folder = os.getenv("FOLDER")
-if not folder:
-    raise EnvironmentError("FOLDER not found. Run with FOLDER='./my-folder/'")
-
-article_selector = os.getenv("ARTICLE_SELECTOR")
-if not article_selector:
-    raise EnvironmentError("ARTICLE_SELECTOR not found. Run with ARTICLE_SELECTOR='#css-selector'")
+sources = os.getenv("SOURCES")
+if not sources:
+    print("No SOURCES variable specified, updating all sources in the knowledge-sources folder:")
+    sources = os.listdir("./knowledge-sources/")
+else:
+    sources = sources.split(',')
+print("Download or extract text from sources: ", sources)
 
 log_articles = os.getenv("LOG_ARTICLES")
 if not log_articles:
     raise EnvironmentError("LOG_ARTICLES not found. Run with LOG_ARTICLES='true' or 'false'")
 
-print("Downloading articles")
-print("Make sure to have checked the ArticleDownloader#scrape_article method and have vetted how metadata, author, date and title are selected.")
+def main():
+    for source in sources:
+        # TODO: discoverer.sync_urls_from_bucket()
+        discoverer = ArticleDownloader(source, log_articles)
+        discoverer.scrape_articles()
 
-discoverer = ArticleDownloader(folder, article_selector, log_articles)
-discoverer.sync_urls_from_bucket()
-discoverer.scrape_articles()
+if __name__ == "__main__":
+    main()

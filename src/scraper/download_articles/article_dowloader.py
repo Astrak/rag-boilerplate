@@ -15,9 +15,14 @@ from scraper.download_articles.pdf_extractor import PDFAdobeExtractor
 DELAY = 0.05 # delay to not Ddos the server
 
 class ArticleDownloader:
-    def __init__(self, folder, article_selector, log_articles):
+    def __init__(self, folder, log_articles):
         self.folder = folder
-        self.article_selector = article_selector
+        self.selectors = {
+            'article': '',
+            'title': '',
+            'date': '',
+            'author': ''
+        }
         self.log_articles = log_articles
         self.articles: list[dict] = []
         self.scraped_urls: set[str] = set()
@@ -33,24 +38,36 @@ class ArticleDownloader:
         s3.download_file("rag-faiss-index-bucket", f"{self.folder[2:]}url-list.csv", f"{self.folder}url-list.csv")
 
     def scrape_articles(self) -> list[dict]:
-        self.urls: list[str] = []
-        # Populate urls from CSV.
-        with open(f'{self.folder}url-list.csv', 'r', encoding='utf-8') as file:
-            csv_reader = csv.reader(file)
-            for row in csv_reader:
-                self.urls.append(row[0])
-        # Populate urls from local-knowledge
-        if os.path.exists(f'{self.folder}local-knowledge'):
-            entries = os.listdir(f'{self.folder}local-knowledge')
-            self.urls.extend(entries)
-        # Remove urls that are already in the gzip and add the scraped content to the new list to compile.
-        if os.path.exists(f"{self.folder}scraped_articles.pkl.gz"):
-            with gzip.open(f"{self.folder}scraped_articles.pkl.gz", 'rb') as f:
+        print("Extracting contents for \033[93m" + self.folder + "\033[0m")
+        full_path = f"./knowledge-sources/{self.folder}"
+        self.urls: set[str] = set()
+        if "." in self.folder and os.path.exists(f'{full_path}/selectors'):
+            with open(f'{full_path}/selectors', 'r', encoding='utf-8') as f:
+                lines = f.read().splitlines()
+                for line in lines:
+                    splits = line.split('=')
+                    self.selectors[splits[0]] = splits[1]
+                if not self.selectors['article']:
+                    raise EnvironmentError('Missing article selector')
+                print(f"Selectors are:\n", self.selectors)
+        else:
+            raise FileNotFoundError(f'No {full_path}/selectors found')
+        if os.path.exists(f'{full_path}/url-list.csv'):
+            with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
+                csv_reader = csv.reader(file)
+                for row in csv_reader:
+                    self.urls.add(row[0])
+        if os.path.exists(f'{full_path}/local-knowledge'):
+            entries = set(os.listdir(f'{full_path}/local-knowledge'))
+            self.urls = self.urls | entries
+        if os.path.exists(f"{full_path}/scraped_articles.pkl.gz"):
+            with gzip.open(f"{full_path}/scraped_articles.pkl.gz", 'rb') as f:
                 scraped_articles = pickle.load(f)
                 for article in scraped_articles:
                     if article['url'] in self.urls:
                         self.articles.append(article)
-                        self.urls[:] = [x for x in self.urls if x != article['url']]
+                        self.urls.remove(article['url'])
+                print(f"{len(self.articles)} already known articles")
         print(f"Starting to scrape {len(self.urls)} articles...")
         with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_url = {executor.submit(self.scrape_article_or_pdf, url): url for url in self.urls}
@@ -68,10 +85,10 @@ class ArticleDownloader:
                     self.failed_urls.add(url)
                 time.sleep(DELAY)
                 completed = len(self.scraped_urls) + len(self.failed_urls)
-                print(f"Progress: {completed}/{len(self.urls)} articles processed")
-        with gzip.open(f"{self.folder}scraped_articles.pkl.gz", 'wb') as f:
+                print(f"\033[92mProgress: {completed}/{len(self.urls)} articles processed\033[0m")
+        with gzip.open(f"{full_path}/scraped_articles.pkl.gz", 'wb') as f:
             pickle.dump(self.articles, f)
-        print(f"Saved {len(self.articles)} dictionaries to {self.folder}scraped-articles.pkl.gz (compressed)")
+        print(f"Saved {len(self.articles)} dictionaries to {full_path}/scraped-articles.pkl.gz (compressed)")
         return self.articles
     
     def scrape_article(self, url: str) -> Optional[dict]:
@@ -80,16 +97,17 @@ class ArticleDownloader:
             response = self.session.get(url, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
-
             title = None
-            title_elem = cast(Tag, soup.select_one('.article_title'))
+            title_elem = cast(Tag, soup.select_one(self.selectors['title']))
             if title_elem:
                 title = title_elem.get_text(strip=True)
+                if self.log_articles == 'true':
+                    print("Title: ", title)
             if not title:
                 print(f"No title found for {url}")
             
             content = None
-            content_elem = soup.select_one(self.article_selector)
+            content_elem = soup.select_one(self.selectors['article'])
             if content_elem:
                 for script in content_elem(["script", "style", "nav", "footer", "iframe"]):
                     script.decompose()
@@ -97,18 +115,22 @@ class ArticleDownloader:
                 if self.log_articles == 'true':
                     print(content)
             if not content:
-                print(f"No content found for {url} with selector: {self.article_selector}")
+                print(f"\033[91mNo content found for {url} with selector: {self.selectors['article']}\033[0m")
                 return None
             
             date = None
-            date_elem = cast(Tag, soup.select_one('.et_pb_title_container .published'))
+            date_elem = cast(Tag, soup.select_one(self.selectors['date']))
             if date_elem:
                 date = date_elem.get_text(strip=True)
+                if self.log_articles == 'true':
+                    print("Date: ", date)
             
             author = None
-            author_element = cast(Tag, soup.select_one('.et_pb_title_container .author'))
+            author_element = cast(Tag, soup.select_one(self.selectors['author']))
             if author_element:
                 author = author_element.get_text(strip=True)
+                if self.log_articles == 'true':
+                    print("Author: ", author)
 
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
@@ -125,14 +147,14 @@ class ArticleDownloader:
                 'word_count': len(content.split()),
                 'scraped_at': time.time()
             }
-            print(f"Successfully scraped article: {url} ({article_data['word_count']} words)")
+            print(f"Successfully scraped article: {url} \033[93m({article_data['word_count']} words)\033[0m")
             return article_data
         except Exception as e:
             print(f"Error scraping {url}: {e}")
             return None
         
     def scrape_pdf(self, url: str) -> Optional[Dict]:
-        print('Scrape PDF')
+        print('Scrape PDF: ', url)
         try:
             path = ""
             is_tmp = False
@@ -152,18 +174,21 @@ class ArticleDownloader:
                     is_tmp = True
             try:
                 extractor = PDFAdobeExtractor()
-                text = extractor.get_text_from_local_pdf(path)
+                text = extractor.get_text_from_local_pdf(path, url)
                 article_data = {
                     "url": url,
                     "title": "PDF",
                     "content": text,
                     "source_type": "pdf",
+                    'word_count': len(text.split()),
+                    'scraped_at': time.time(),
                     "metadata": {
-                        "filename": os.path.basename(urlparse(url).path),
+                        "filename": os.path.basename(urlparse(url).path) if 'https://' in url else url,
                     },
                 }
-                print(text)
-                print(f"Successfully scraped PDF: {url}")
+                if self.log_articles == 'true':
+                    print(text)
+                print(f"Successfully scraped PDF: {url} \033[93m({article_data['word_count']} words)\033[0m")
                 return article_data
             except Exception as e:
                 print(f"Error with extractor : {e}")
