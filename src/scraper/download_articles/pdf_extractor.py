@@ -20,7 +20,11 @@ class PDFAdobeExtractor:
 
     def get_text_from_local_pdf(self, path: str, url: str) -> str:
         self.url = url
-        self._get_access_token()
+        try:
+            self._get_access_token()
+        except Exception as e:
+            print('Raise error: ', str(e))
+            raise BrokenPipeError(e)
         self._get_uploadUri_and_assetID()
         self._upload(path)
         self._extract()
@@ -42,9 +46,11 @@ class PDFAdobeExtractor:
                 json = response.json()
                 self._access_token = json['access_token']
             else:
-                print(f"Error {response.status_code} when getting access_token")
+                print('Raise error in else')
+                raise BrokenPipeError(f"Error {response.status_code} when getting access_token")
         except Exception as e:
-            print(f"Error getting Adobe acces_token for PDF extraction: {e}")
+            print('Raise error in getccesstoken')
+            raise BrokenPipeError(e)
     
     def _get_uploadUri_and_assetID(self):
         try:
@@ -62,9 +68,9 @@ class PDFAdobeExtractor:
                 self._uploadUri = json['uploadUri']
                 self._assetID = json['assetID']
             else:
-                print(f"Error {response.status_code} when getting uploadUri and assetID")
+                raise BrokenPipeError(f"Error {response.status_code} when getting uploadUri and assetID")
         except Exception as e:
-            print(f"Error getting uploadUri and assetID for PDF extraction: {e}")
+            raise BrokenPipeError(f"Error getting uploadUri and assetID for PDF extraction: {e}")
 
     def _upload(self, path: str):
         try:
@@ -83,7 +89,7 @@ class PDFAdobeExtractor:
                 else:
                     print(f"Error {response.status_code} when uploading PDF")
         except Exception as e:
-            print(f"Error uploading PDF: {e}, current path is {os.getcwd()}")
+            raise BrokenPipeError(f"Error uploading PDF: {e}")
     
     def _extract(self):
         try:
@@ -104,9 +110,9 @@ class PDFAdobeExtractor:
             if response.status_code == 201:
                 self._resource_status_url = response.headers.get('Location')
             else:
-                print(f"Error {response.status_code} when requesting extraction operation")
+                raise BrokenPipeError(f"Error {response.status_code} when requesting extraction operation")
         except Exception as e:
-            print(f"Error requesting PDF extraction: {e}")
+            raise BrokenPipeError(f"Error requesting PDF extraction: {e}")
 
     def _poll_extraction(self):
         while True:
@@ -131,7 +137,7 @@ class PDFAdobeExtractor:
                 else:
                     print(f"Error {response.status_code} when extracting PDF")
             except Exception as e:
-                print(f"Error getting PDF extraction status: {e}")
+                raise BrokenPipeError(f"Error getting PDF extraction status: {e}")
             time.sleep(1)
     
     def _parse_extracted_pdf(self) -> str:
@@ -145,4 +151,4 @@ class PDFAdobeExtractor:
             else:
                 print(f"Error {response.status_code} when reading extracted PDF")
         except Exception as e:
-            print(f"Error reading PDF: {e}")
+            raise BrokenPipeError(f"Error reading PDF: {e}")

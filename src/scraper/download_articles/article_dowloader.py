@@ -16,6 +16,7 @@ DELAY = 0.05 # delay to not Ddos the server
 
 class ArticleDownloader:
     def __init__(self, folder, log_articles):
+        self._adobe_429 = False
         self.folder = folder
         self.selectors = {
             'article': '',
@@ -41,17 +42,18 @@ class ArticleDownloader:
         print("Extracting contents for \033[93m" + self.folder + "\033[0m")
         full_path = f"./knowledge-sources/{self.folder}"
         self.urls: set[str] = set()
-        if "." in self.folder and os.path.exists(f'{full_path}/selectors'):
-            with open(f'{full_path}/selectors', 'r', encoding='utf-8') as f:
-                lines = f.read().splitlines()
-                for line in lines:
-                    splits = line.split('=')
-                    self.selectors[splits[0]] = splits[1]
-                if not self.selectors['article']:
-                    raise EnvironmentError('Missing article selector')
-                print(f"Selectors are:\n", self.selectors)
-        else:
-            raise FileNotFoundError(f'No {full_path}/selectors found')
+        if "." in self.folder:
+            if os.path.exists(f'{full_path}/selectors'):
+                    with open(f'{full_path}/selectors', 'r', encoding='utf-8') as f:
+                        lines = f.read().splitlines()
+                        for line in lines:
+                            splits = line.split('=')
+                            self.selectors[splits[0]] = splits[1]
+                        if not self.selectors['article']:
+                            raise EnvironmentError('Missing article selector')
+                        print(f"Selectors are:\n", self.selectors)
+            else: 
+                FileNotFoundError(f'No {full_path}/selectors found')
         if os.path.exists(f'{full_path}/url-list.csv'):
             with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
                 csv_reader = csv.reader(file)
@@ -96,7 +98,7 @@ class ArticleDownloader:
         return self.articles
     
     def scrape_article(self, url: str) -> Optional[dict]:
-        print("Scrape article")
+        print("Scraping: ", url)
         try:
             response = self.session.get(url, timeout=15)
             response.raise_for_status()
@@ -131,8 +133,9 @@ class ArticleDownloader:
                     date = date_elem.get_text(strip=True)
                     if self.log_articles == 'true':
                         print("Date: ", date)
+
+            author = None
             if self.selectors['author']:
-                author = None
                 author_element = cast(Tag, soup.select_one(self.selectors['author']))
                 if author_element:
                     author = author_element.get_text(strip=True)
@@ -161,6 +164,9 @@ class ArticleDownloader:
             return None
         
     def scrape_pdf(self, url: str) -> Optional[Dict]:
+        if self._adobe_429:
+            print('Skipping PDF extraction')
+            return
         print('Scrape PDF: ', url)
         try:
             path = ""
@@ -198,7 +204,11 @@ class ArticleDownloader:
                 print(f"Successfully scraped PDF: {url} \033[93m({article_data['word_count']} words)\033[0m")
                 return article_data
             except Exception as e:
-                print(f"Error with extractor : {e}")
+                if '429' in str(e):
+                    print("No more free PDF extractions! You must pay!")
+                    print("Skipping next PDFs")
+                    self._adobe_429 = True
+                raise BrokenPipeError(f"Error with extractor : {e}")
             finally:
                 if os.path.exists(path) and is_tmp:
                     os.unlink(path)

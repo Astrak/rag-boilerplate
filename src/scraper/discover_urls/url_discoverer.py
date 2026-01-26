@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from collections import Counter
 
 DELAY = 0.05 # delay to not Ddos the server
-IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml"}
+IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml", ".docx", ".mp4", '.wma', '.mp3'}
 DONT_VISIT_BUT_RECORD = {".pdf"}
 VISIT_BUT_DONT_RECORD = {"/page/", "?page="}
 
@@ -175,7 +175,8 @@ class UrlDiscoverer:
                 time.sleep(DELAY) 
             except Exception as e:
                 sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
-                sys.stdout.write(f"\r\033[K\033[93mError: {current_url if original_url == current_url else f"{original_url} (routed)"} : {e}\n\033[K\n") 
+                url = current_url if original_url == current_url else f"{original_url} (routed)"
+                sys.stdout.write(f"\r\033[K\033[93mError: {url} : {e}\033[0m\n\033[K\n") 
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
                 sys.stdout.write(f"\r\033[KVisited: {len(visited) - was_known}\n") 
                 sys.stdout.write(f"\r\033[KRemaining: {len(to_visit)}\n") 
