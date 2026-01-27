@@ -120,18 +120,29 @@ Use the `ArticleDiscoverer` and wait for it to complete.
 
 The result is a file `scraped-articles.pkl.gz` in the relative path assigned in `FOLDER`.
 
-Before starting, make sure that the title selector is correct and the metadata selectors too.
+Before starting, make sure a `selectors` file is created in the source(s) target(s). It should look like this:
+
+```
+title=h1#my-title
+author=div.author-field
+date=
+article=div#content > article
+```
 
 Turn on and off `LOG_ARTICLES` to log what the saved articles actually look like.
 
+If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
+
 ```bash
-FOLDER='./my-folder/' ARTICLE_SELECTOR='#article-content' LOG_ARTICLES='true' python3 -m scraper.download_articles.main
+ADOBE_CLIENT_ID='XXX' ADOBE_CLIET_SECRET='XXX' SOURCES='source-1,source2.com' LOG_ARTICLES='true' python3 -m scraper.download_articles.main
 ```
 
 ### Vectorize
 
-Use the `Vectorizer` and wait for it to complete. It takes a few minutes. Make sure the `FOLDER` in the `main.py` file is what you expect.
+Use the `Vectorizer` and wait for it to complete. It takes a few minutes. Make sure the `SOURCES` in the `main.py` file is what you expect.
+
+If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
 
 ```bash
-FOLDER='./my-folder/' python3 -m scraper.vectorizer.main
+SOURCES='website1.com,source2' python3 -m scraper.vectorizer.main
 ```
