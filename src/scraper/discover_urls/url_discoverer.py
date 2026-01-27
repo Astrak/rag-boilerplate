@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from collections import Counter
 
 DELAY = 0.05 # delay to not Ddos the server
-IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml", ".docx", ".mp4", '.wma', '.mp3'}
+IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml", ".docx", ".mp4", '.wma', '.mp3', '.doc'}
 DONT_VISIT_BUT_RECORD = {".pdf"}
 VISIT_BUT_DONT_RECORD = {"/page/", "?page="}
 
@@ -68,13 +68,24 @@ class UrlDiscoverer:
         to_visit = []
         to_revisit = set()
         visited = set()
+        visited_in_session = []
         ignored = IGNORE
         visit_but_dont_record = VISIT_BUT_DONT_RECORD
         blacklisted = set()
         was_known = 0
         timer = datetime.utcnow()
-        response = self.session.get(f"https://{self.folder}", timeout=10)
-        self.base_url = response.url # Use main domain that the folder domain redirects to (with or without www)
+        protocol = "https"
+        try:
+            response = self.session.get(f"{protocol}://{self.folder}", timeout=10)
+            self.base_url = response.url 
+        except Exception as e:
+            if "SSLCertVerificationError" in str(e):
+                protocol = "http"
+                try:
+                    response = self.session.get(f"{protocol}://{self.folder}", timeout=10)
+                    self.base_url = response.url
+                except Exception as ee:
+                    raise TypeError("No protocol allowed connecting to this website")
         to_visit.append(self.base_url)
         if os.path.exists(f'{full_path}/url-list.csv'):
             with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
@@ -113,6 +124,7 @@ class UrlDiscoverer:
                 response = self.session.get(current_url, timeout=10)
                 response.raise_for_status()
                 redirected_url = response.url
+                visited_in_session.append(redirected_url)
                 if redirected_url != current_url:
                     current_url = redirected_url
                     if current_url in to_visit:
@@ -126,16 +138,16 @@ class UrlDiscoverer:
                     links.remove("#")
                 new_article_found = False
                 for href in links:
-                    if "mailto:" in href:
+                    if any(sub in href for sub in ["mailto:", "javascript:", "tel:"]):
                         continue
                     href = self._ensure_url_is_absolute(href)
                     href = href.split('#')[0]
                     if all(sub not in href for sub in ["id=","page="]):
                         href = href.split('?')[0]
-                    split = href.split('://')
-                    split[1] = split[1].replace("//","/") # Ensure no malformed link is kept
-                    href = "://".join(split)
-                    href = quote(href, safe=":/é?=")
+                    items = href.split('://')
+                    items[1] = items[1].replace("//","/") 
+                    href = protocol + "://" + items[1]
+                    href = quote(href, safe=":/é?=") 
                     is_ignored = any(sub in href for sub in ignored)
                     dont_visit_but_record = any(sub in href for sub in DONT_VISIT_BUT_RECORD)
                     dont_record_but_visit = any(sub in href for sub in visit_but_dont_record) or href in blacklisted
