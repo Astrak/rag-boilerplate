@@ -47,8 +47,8 @@ class ArticleDownloader:
                     with open(f'{full_path}/selectors', 'r', encoding='utf-8') as f:
                         lines = f.read().splitlines()
                         for line in lines:
-                            splits = line.split('=')
-                            self.selectors[splits[0]] = splits[1]
+                            items = line.split('=')
+                            self.selectors[items[0]] = "=".join(items[1:])
                         if not self.selectors['article']:
                             raise EnvironmentError('Missing article selector')
                         print(f"Selectors are:\n", self.selectors)
@@ -216,7 +216,7 @@ class ArticleDownloader:
             print(f"Error scraping PDF {url}: {e}")
 
     def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
-        if not url.startswith("https://"):
+        if not url.startswith("https://") and not url.startswith("http://"):
             if url.endswith(".pdf"):
                 return self.scrape_pdf(url)
             else:
