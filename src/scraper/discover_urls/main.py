@@ -12,8 +12,11 @@ print("Scrape sources: ", sources)
 def main():
     # TODO: sync from AWS?
     for source in sources:
-        discoverer = UrlDiscoverer(source)
-        discoverer.discover_urls()
+        try:
+            discoverer = UrlDiscoverer(source)
+            discoverer.discover_urls()
+        except Exception as e:
+            print(f'\033[91mFailed to discover URLs from {source}\033[0m')
 
 if __name__ == "__main__":
     main()
