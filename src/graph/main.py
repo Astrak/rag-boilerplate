@@ -73,7 +73,7 @@ class Graph:
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
         for folder in self.folders:
-            embeddings_folder = folder + 'embeddings/'
+            embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
             embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
             n_chunks = len(embeddings_chunks)
             results_per_chunk = 8 // n_chunks + 1 # Gather 8 results per source.
