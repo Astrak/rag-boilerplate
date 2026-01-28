@@ -31,7 +31,6 @@ try:
         for page in paginator.paginate(
             Bucket="rag-faiss-index-bucket",
             Prefix="knowledge-sources/",
-            Delimiter="/",
         ):
             print(page)
             for cp in page.get("CommonPrefixes", []):
