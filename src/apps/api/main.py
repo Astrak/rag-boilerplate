@@ -11,12 +11,6 @@ from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
 import os
 import boto3
-import botocore.credentials
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
-botocore.credentials.logger.setLevel(logging.DEBUG)
-
 
 sources = os.getenv("SOURCES")
 if not sources:
