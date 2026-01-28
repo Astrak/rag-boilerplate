@@ -34,6 +34,7 @@ try:
                 files.append(file)
         for file in files:
             print(file)
+        print(os.path)
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources')
 
