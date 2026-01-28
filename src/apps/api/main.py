@@ -25,16 +25,16 @@ fill_env()
 try:
     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
     if sync:
-        s3_client = boto3.client("s3")
+        s3 = boto3.client("s3")
         files = []
-        paginator = s3_client.get_paginator("list_objects_v2")
+        paginator = s3.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket="rag-faiss-index-bucket"):
             for cp in page.get("Contents", []):
                 file = cp["Key"]
                 files.append(file)
-        for file in files:
-            print(file)
-        print(os.getcwd())
+        # for file in files:
+        s3.download_file("rag-faiss-index-bucket", f"knowledge-sources/{file[0]}", file[0])
+        print(file[0])
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources')
 
