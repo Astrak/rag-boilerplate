@@ -33,6 +33,8 @@ try:
                 file = cp["Key"]
                 files.append(file)
         for file in files:
+            if file.endswith('/'):
+                continue
             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
             s3.download_file(
