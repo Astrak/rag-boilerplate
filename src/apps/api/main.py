@@ -29,7 +29,6 @@ try:
         folders = []
         paginator = s3_client.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket="rag-faiss-index-bucket"):
-            print(page)
             for cp in page.get("CommonPrefixes", []):
                 full_prefix = cp["Prefix"]
                 subfolder = full_prefix[len("knowledge-sources/"):]
