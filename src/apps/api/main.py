@@ -33,6 +33,7 @@ try:
             Prefix="knowledge-sources/",
             Delimiter="/",
         ):
+            print(page)
             for cp in page.get("CommonPrefixes", []):
                 full_prefix = cp["Prefix"]
                 subfolder = full_prefix[len("knowledge-sources/"):]
