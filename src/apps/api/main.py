@@ -11,22 +11,22 @@ from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
 import os
 
-folders = os.getenv("FOLDERS")
-if not folders:
-    raise EnvironmentError("FOLDERS not found. Run with FOLDERS='./folder1/,./folder2/,./folder3/'")
-folders_list = [folder_name.strip() for folder_name in folders.split(",")]
 
-DEFAULT_SOURCES = [folder_name.removeprefix('./').removesuffix('/') for folder_name in folders.split(',')]
-
-print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
+sources = os.getenv("SOURCES")
+if not sources:
+    print("No SOURCES variable specified, using all sources in the knowledge-sources folder:")
+    sources = os.listdir("./knowledge-sources/")
+else:
+    sources = sources.split(',')
+print("Running RAG from sources: ", sources)
 
 fill_env()
 
 search_prompt = get_search_prompt()
 analyze_prompt = get_analyze_prompt()
 
-search_graph = Graph(search_prompt, folders_list)
-analysis_graph = Graph(analyze_prompt, folders_list)
+search_graph = Graph(search_prompt, sources)
+analysis_graph = Graph(analyze_prompt, sources)
 
 allowed_origins = [
     "https://polemia.surge.sh",
@@ -60,7 +60,7 @@ def home():
 
 class SearchRequest(BaseModel):
     question: str
-    sources: Optional[List[str]] = DEFAULT_SOURCES
+    sources: Optional[List[str]] = sources
     llm: str
 
 class Resource(TypedDict):
@@ -74,7 +74,7 @@ def search(request: SearchRequest):
     print('RETRIEVE: Question is: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
-    analysis_graph.folders = sources.split(',')
+    # analysis_graph.folders = sources.split(',')
     result = analysis_graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
@@ -89,7 +89,7 @@ def search(request: SearchRequest):
     print('SUMUP: Question is: ' + request.question)
     print('SUMUP: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
-    search_graph.folders = sources.split(',')
+    # search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('\033[93mSUMUP: Answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
@@ -101,7 +101,7 @@ def search(request: SearchRequest):
     print('SUMUP: Question is: ' + request.question)
     print('SUMUP: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
-    search_graph.folders = sources.split(',')
+    # search_graph.folders = sources.split(',')
     result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('\033[93mSUMUP: Answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
@@ -113,7 +113,7 @@ def search(request: SearchRequest):
     print('ANALYZE: Question is: ' + request.question)
     print('ANALYZE: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
-    analysis_graph.folders = sources.split(',')
+    # analysis_graph.folders = sources.split(',')
     result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('\033[93mANALYZE: Answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
