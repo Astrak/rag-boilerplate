@@ -34,7 +34,11 @@ try:
                 files.append(file)
         # for file in files:
         print(f"Downloading {files[0]} into {os.getcwd()}/knowledge-sources/{files[0]}")
-        s3.download_file("rag-faiss-index-bucket", f"knowledge-sources/{files[0]}", files[0])
+        s3.download_file(
+            Bucket="rag-faiss-index-bucket", 
+            Filename=f"knowledge-sources/{files[0]}", 
+            Key=files[0]
+        )
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources', e)
 
