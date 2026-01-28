@@ -33,12 +33,12 @@ try:
                 file = cp["Key"]
                 files.append(file)
         for file in files:
-            print(f"Downloading {files[0]} into {os.getcwd()}/knowledge-sources/{files[0]}...")
-            os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{files[0]}"), exist_ok=True)
+            print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
+            os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
             s3.download_file(
                 Bucket="rag-faiss-index-bucket", 
-                Filename=f"knowledge-sources/{files[0]}", 
-                Key=files[0]
+                Filename=f"knowledge-sources/{file}", 
+                Key=file
             )
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources', e)
