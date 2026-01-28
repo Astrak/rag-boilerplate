@@ -36,7 +36,7 @@ try:
         s3.download_file("rag-faiss-index-bucket", f"knowledge-sources/{file[0]}", file[0])
         print(file[0])
 except Exception as e:
-    raise ValueError('Didnt understand what to do with knowledge sources')
+    raise ValueError('Didnt understand what to do with knowledge sources', e)
 
 search_prompt = get_search_prompt()
 analyze_prompt = get_analyze_prompt()
