@@ -3,7 +3,7 @@ import os
 
 sources = os.getenv("SOURCES")
 if not sources:
-    print("No SOURCES variable specified, updating all sources in the knowledge-sources folder:")
+    print("No SOURCES variable specified, extracting from all sources in the knowledge-sources folder:")
     sources = os.listdir("./knowledge-sources/")
 else:
     sources = sources.split(',')
@@ -15,9 +15,9 @@ if not log_articles:
 
 def main():
     for source in sources:
-        # TODO: discoverer.sync_urls_from_bucket()
         discoverer = ArticleDownloader(source, log_articles)
         discoverer.scrape_articles()
+        discoverer.sync_gzip_to_bucket()
 
 if __name__ == "__main__":
     main()

@@ -33,10 +33,33 @@ class ArticleDownloader:
             'User-Agent': 'Mozilla/5.0 (compatible; ArticleScraper/1.0)'
         })
     
-    def sync_urls_from_bucket(self):
+    # def sync_urls_from_bucket(self):
+    #     s3 = boto3.client('s3', region_name="eu-north-1")
+    #     os.makedirs(self.folder, exist_ok=True)
+    #     s3.download_file("rag-faiss-index-bucket", f"knowledge-sources/{self.folder}/url-list.csv", f"{self.folder}/url-list.csv")
+
+    def sync_gzip_to_bucket(self):
         s3 = boto3.client('s3', region_name="eu-north-1")
-        os.makedirs(self.folder, exist_ok=True)
-        s3.download_file("rag-faiss-index-bucket", f"{self.folder[2:]}url-list.csv", f"{self.folder}url-list.csv")
+        try:
+            print("\033[KUploading scraped_articles.pkl.gz to AWS backup...")
+            s3.upload_file(
+                Bucket="rag-faiss-index-bucket", 
+                Filename=f"knowledge-sources/{self.folder}/scraped_articles.pkl.gz", 
+                Key=f"{self.folder}/scraped_articles.pkl.gz"
+            )
+            print("\033[KSynced")
+        except Exception as e:
+            print("\033[KFailed to upload scraped_articles.pkl.gz to AWS bucket")
+        try:
+            print("\033[KUploading selectors to AWS backup...")
+            s3.upload_file(
+                Bucket="rag-faiss-index-bucket", 
+                Filename=f"knowledge-sources/{self.folder}/selectors", 
+                Key=f"{self.folder}/selectors"
+            )
+            print("\033[KSynced")
+        except Exception as e:
+            print("\033[KFailed to upload selectors to AWS bucket")
 
     def scrape_articles(self) -> list[dict]:
         print("Extracting contents for \033[93m" + self.folder + "\033[0m")
