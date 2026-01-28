@@ -26,15 +26,14 @@ try:
     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
     if sync:
         s3_client = boto3.client("s3")
-        folders = []
+        files = []
         paginator = s3_client.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket="rag-faiss-index-bucket"):
-            for cp in page.get("CommonPrefixes", []):
-                full_prefix = cp["Prefix"]
-                subfolder = full_prefix[len("knowledge-sources/"):]
-                folders.append(subfolder)
-        for folder in folders:
-            print(folder)
+            for cp in page.get("Contents", []):
+                file = cp["Key"]
+                files.append(file)
+        for file in files:
+            print(file)
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources')
 
