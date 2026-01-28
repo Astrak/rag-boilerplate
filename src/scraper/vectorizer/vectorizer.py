@@ -1,10 +1,11 @@
 from langchain_core.documents import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 import tiktoken
 import pickle
 import gzip
 import os
+import boto3
 import numpy as np 
 import faiss
 
@@ -13,9 +14,27 @@ MAX_TOKENS_PER_REQUEST = 260000
 MODEL = "text-embedding-3-large"
 
 class Vectorizer:
-    def __init__(self, folder, checkpoint_dir):
-        self.folder = folder
-        self.checkpoint_dir = checkpoint_dir
+    def __init__(self, source):
+        self.folder = f"./knowledge-sources/{source}"
+        self.checkpoint_dir = f"{self.folder}/embeddings"
+
+    def sync_embeddings_to_bucket(self):
+        s3 = boto3.client('s3', region_name="eu-north-1")
+        try:
+            print("\033[KUploading embeddings to AWS backup...")
+            print('Will upload embeddings:')
+            for root, _, files in os.walk(self.checkpoint_dir):
+                for filename in files:
+                    print("Filename: ", f"{self.checkpoint_dir}/{filename}")
+                    print("To: ", f"{self.folder.split('/')[2]}/embeddings/{filename}")
+                    s3.upload_file(
+                        Filename=f"{self.checkpoint_dir}/{filename}", 
+                        Bucket="rag-faiss-index-bucket", 
+                        Key=f"{self.folder.split('/')[2]}/embeddings/{filename}"
+                    )
+            print("\033[KSynced")
+        except Exception as e:
+            print("\033[KFailed to upload embeddings to AWS bucket")
 
     def create_embeddings_with_checkpoint(self):
         batches = self._prepare_articles_in_doc_batches_for_embeddings()
@@ -28,11 +47,9 @@ class Vectorizer:
         else:
             completed_batches = []
         embeddings_model = OpenAIEmbeddings(model=MODEL)
-
         if len(completed_batches) >= len(batches):
             print("Embeddings complete")
             return
-        
         for i, batch in enumerate(batches, start=len(completed_batches)):
             print(f"Processing batch {i+1}/{len(batches)}")
             try:
@@ -80,7 +97,7 @@ class Vectorizer:
     
     def _prepare_articles_in_doc_batches_for_embeddings(self) -> list[list[Document]]:
         """Split articles in documents according to ideal token length for vectorization"""
-        with gzip.open(f"{self.folder}scraped_articles.pkl.gz", 'rb') as f:
+        with gzip.open(f"{self.folder}/scraped_articles.pkl.gz", 'rb') as f:
             articles = pickle.load(f)
         documents: list[Document] = []
         text_splitter = RecursiveCharacterTextSplitter(
@@ -93,14 +110,14 @@ class Vectorizer:
                 doc = Document(
                     page_content=chunk,
                     metadata={
-                        'source': article['url'],
-                        'title': article['title'],
-                        'date': article['date'],
-                        'author': article['author'],
+                        'source': article.get('url'),
+                        'title': article.get('title'),
+                        'date': article.get('date'),
+                        'author': article.get('author'),
                         'chunk_id': i,
                         'total_chunks': len(text_chunks),
-                        'word_count': article['word_count'],
-                        'meta_description': article['meta_description']
+                        'word_count': article.get('word_count'),
+                        'meta_description': article.get('meta_description')
                     }
                 )
                 documents.append(doc)
@@ -124,6 +141,3 @@ class Vectorizer:
             batches.append(current_batch)
 
         return batches
-
-
-        
