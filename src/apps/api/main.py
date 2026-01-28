@@ -34,7 +34,7 @@ try:
                 files.append(file)
         # for file in files:
         print(f"Downloading {files[0]} into {os.getcwd()}/knowledge-sources/{files[0]}")
-        os.makedirs(os.path.dirname(files[0]), exist_ok=True)
+        os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{files[0]}"), exist_ok=True)
         s3.download_file(
             Bucket="rag-faiss-index-bucket", 
             Filename=f"knowledge-sources/{files[0]}", 
