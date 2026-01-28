@@ -9,6 +9,7 @@ langchain-xai
 langchain-core==1.2.6
 langchain-openai==1.1.6
 langchain-community==0.4.1
+langchain-text-splitters>=0.3.0
 langchain[google-genai]
 python-telegram-bot
 beautifulsoup4
