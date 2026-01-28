@@ -10,6 +10,7 @@ from typing_extensions import TypedDict
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
 import os
+import boto3
 
 
 sources = os.getenv("SOURCES")
@@ -21,6 +22,27 @@ else:
 print("Running RAG from sources: ", sources)
 
 fill_env()
+
+try:
+    sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
+    if sync:
+        s3_client = boto3.client("s3")
+        folders = []
+        paginator = s3_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(
+            Bucket="rag-faiss-index-bucket",
+            Prefix="knowledge-sources/",
+            Delimiter="/",
+        ):
+            for cp in page.get("CommonPrefixes", []):
+                full_prefix = cp["Prefix"]
+                subfolder = full_prefix[len("knowledge-sources/"):]
+                folders.append(subfolder)
+        
+        for folder in folders:
+            print(folder)
+except Exception as e:
+    raise ValueError('Didnt understand what to do with knowledge sources')
 
 search_prompt = get_search_prompt()
 analyze_prompt = get_analyze_prompt()
