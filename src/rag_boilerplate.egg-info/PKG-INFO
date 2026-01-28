@@ -79,7 +79,7 @@ http://16.171.231.107:8000/analyze
 Clear the following:
 `pip install -m requirements.txt`
 
-## Scraper
+## Building the knowledge base
 
 The scraper is not entirely automatized so one can vet if the data is correctly picked from the targeted website.
 
@@ -88,44 +88,68 @@ It is built to have an associated S3 bucket storing the url lists.
 The user must separately:
 
 - discover valid article urls of the target,
-- download articles texts,
+- download articles texts or extract PDFs,
 - then vectorize.
 
-### Discover URLs for a given website
+### Discover data
 
-Use the `UrlDiscoverer` and wait for it to complete. On a blog of 5000 articles it takes 2 to 3 hours.
+The knowledge is stored in an untracked folder `./knowledge-sources/` at the source of the repo. Every online source knowledge must be identified by its public domain: `my-website.com`.
+
+#### Scrape website URLs for a given website
+
+To update all `url-list.csv` of all knowledge sources, just do:
 
 ```bash
-BASE_URL='https://mywebsite.com' python3 -m scraper.discover_urls.main > scraped_urls.csv
+python3 -m scraper.discover_urls.main
 ```
 
-Then double check scraped_urls.csv, and make sure to review the following:
+To scrawl for specific sources: target specific sources, `SOURCES="my-website.com,website2.com"` for instance (comma separated). Indexes are created or updated for each source in a file at `<source>/url-list.csv`. A blacklist can be added of specific URLs not to record at `<source>/blacklist.csv`, and URLs or patterns that must not be explored in `<source>/ignore.csv` (like `/tag/`). It may be long to build the initial URL list but updating is optimized.
+
+```bash
+SOURCES='my-website.com' python3 -m scraper.discover_urls.main
+```
+
+Then double check `my-website.com/url-list.csv`, and make sure to review the following:
 
 - every line is a valid URL of an article to be stored and vectorized.
-- no empty lines remain
-- remove .jpg, .pdf, .xlsx and other links that are not web pages
-- remove pages that are not articles, like contact form etc (put it in EXCLUDED_PATHS beforehand)
+- no empty lines remain except the last
+- remove pages that are not articles, like contact forms, articles lists etc., put them in `blacklist.csv` or `ignore.csv`
 
 Store this file preciously. When updating the data, the easiest will be to append the last articles of the target to this file if feasible.
 
-### Record all articles
+#### Accumulate data locally (PDFs for now)
+
+Files can be read locally too, only PDFs for now. If a PDF is online, starting with `https://`, it can be kept in the `url-list.csv` above, it will be handled as such by the `ArticleDiscoverer` in the next step. But one can also create a local knowledge base of offline data, which the final LLM's output won't be able to give a link to, but only a reference of edition. For this, create a folder `local-knowledge` within your domain folder, and just put the PDF there with the name you wish, like `my-pdf.pdf`.
+
+### Record documents
 
 Use the `ArticleDiscoverer` and wait for it to complete.
 
 The result is a file `scraped-articles.pkl.gz` in the relative path assigned in `FOLDER`.
 
-Before starting, make sure that the title selector is correct and the metadata selectors too.
+Before starting, make sure a `selectors` file is created in the source(s) target(s). It should look like this:
+
+```
+title=h1#my-title
+author=div.author-field
+date=
+article=div#content > article
+```
 
 Turn on and off `LOG_ARTICLES` to log what the saved articles actually look like.
 
+If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
+
 ```bash
-FOLDER='./my-folder/' ARTICLE_SELECTOR='#article-content' LOG_ARTICLES='true' python3 -m scraper.download_articles.main
+ADOBE_CLIENT_ID='XXX' ADOBE_CLIET_SECRET='XXX' SOURCES='source-1,source2.com' LOG_ARTICLES='true' python3 -m scraper.download_articles.main
 ```
 
 ### Vectorize
 
-Use the `Vectorizer` and wait for it to complete. It takes a few minutes. Make sure the `FOLDER` in the `main.py` file is what you expect.
+Use the `Vectorizer` and wait for it to complete. It takes a few minutes. Make sure the `SOURCES` in the `main.py` file is what you expect.
+
+If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
 
 ```bash
-FOLDER='./my-folder/' python3 -m scraper.vectorizer.main
+SOURCES='website1.com,source2' python3 -m scraper.vectorizer.main
 ```

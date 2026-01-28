@@ -11,6 +11,11 @@ from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
 import os
 import boto3
+import botocore.credentials
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+botocore.credentials.logger.setLevel(logging.DEBUG)
 
 
 sources = os.getenv("SOURCES")
@@ -38,7 +43,6 @@ try:
                 full_prefix = cp["Prefix"]
                 subfolder = full_prefix[len("knowledge-sources/"):]
                 folders.append(subfolder)
-        
         for folder in folders:
             print(folder)
 except Exception as e:
