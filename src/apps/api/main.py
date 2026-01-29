@@ -9,6 +9,7 @@ from typing import Optional, List
 from typing_extensions import TypedDict
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
+from enum import Enum, auto
 import os
 import boto3
 
@@ -33,7 +34,7 @@ try:
                 file = cp["Key"]
                 files.append(file)
         for file in files:
-            if file.endswith('/'):
+            if file.endswith('/') or ".pdf" or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
                 continue
             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
@@ -81,10 +82,15 @@ app.add_middleware(IPThrottleMiddleware)
 def home():
     return "hello world"
 
+class AnswerSize(str, Enum):
+    SMALL = "170" 
+    MEDIUM = "400"
+    BIG = "800"
+
 class SearchRequest(BaseModel):
     question: str
     sources: Optional[List[str]] = sources
-    llm: str
+    answerSize: Optional[AnswerSize] = AnswerSize.SMALL
 
 class Resource(TypedDict):
     url: str
