@@ -49,6 +49,7 @@ class Graph:
             embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
             for f in os.listdir(embeddings_folder):
                 if f.startswith('faisschunk_') and f.endswith('.index'):
+                    print(f"In folder {folder}, reading file {f}")
                     self.preload_indices[f] = faiss.read_index(f)
                     with open(f.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as f:
                         self.preloaded_docs[f] = pickle.load(f)
