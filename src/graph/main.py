@@ -51,7 +51,7 @@ class Graph:
                 if f.startswith('faisschunk_') and f.endswith('.index'):
                     file = embeddings_folder + f
                     print(f"In folder {folder}, reading file {file}")
-                    self.preload_indices[file] = faiss.read_index(file)
+                    self.preloaded_indices[file] = faiss.read_index(file)
                     with open(file.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as ff:
                         self.preloaded_docs[file] = pickle.load(ff)
 
