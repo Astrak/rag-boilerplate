@@ -50,6 +50,7 @@ search_prompt = get_search_prompt()
 analyze_prompt = get_analyze_prompt()
 
 search_graph = Graph(search_prompt, sources)
+search_graph.preload_indices()
 analysis_graph = Graph(analyze_prompt, sources)
 
 allowed_origins = [
@@ -104,7 +105,6 @@ def search(request: SearchRequest):
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
     # analysis_graph.folders = sources.split(',')
-    search_graph.preload_indices()
     result = search_graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
