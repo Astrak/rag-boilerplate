@@ -104,11 +104,11 @@ class Graph:
                             all_results.append((score, chunk_texts[idx]))
                 print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         else:
-            for index in self.preloaded_indices:
-                scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
+            for file in self.preloaded_indices:
+                scores, indices = self.preloaded_indices[file].search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
-                    if idx < len(self.preloaded_docs[index]):
-                        all_results.append((score, self.preloaded_docs[index][idx]))
+                    if idx < len(self.preloaded_docs[file]):
+                        all_results.append((score, self.preloaded_docs[file][idx]))
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])
