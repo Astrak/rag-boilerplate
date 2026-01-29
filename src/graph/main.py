@@ -87,7 +87,7 @@ class Graph:
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
         start_time = time.perf_counter()
-        if not self.preload_indices:
+        if not self.preloaded_indices:
             for folder in self.folders:
                 folder_start_time = time.perf_counter()
                 embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
@@ -104,7 +104,7 @@ class Graph:
                             all_results.append((score, chunk_texts[idx]))
                 print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         else:
-            for index in self.preload_indices:
+            for index in self.preloaded_indices:
                 scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(self.preloaded_docs[index]):
