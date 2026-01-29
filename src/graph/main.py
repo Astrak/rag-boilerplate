@@ -36,10 +36,22 @@ class Graph:
     def __init__(self, prompt: PromptTemplate, folders: List[str]):
         self.prompt = prompt
         self.folders = folders
+        self.preloaded_indices = {}
+        self.preloaded_docs = {}
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
         self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
+    
+    def preload_indices(self):
+        print('Pre-loading indices')
+        for folder in self.folders:
+            embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
+            for f in os.listdir(embeddings_folder):
+                if f.startswith('faisschunk_') and f.endswith('.index'):
+                    self.preload_indices[f] = faiss.read_index(f)
+                    with open(f.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as f:
+                        self.preloaded_docs[f] = pickle.load(f)
 
     def retrieve(self, state: State):
         print(f'\033[94mGRAPH: Retrieve: Received question: {state["question"]}')
@@ -73,21 +85,28 @@ class Graph:
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
         start_time = time.perf_counter()
-        for folder in self.folders:
-            folder_start_time = time.perf_counter()
-            embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
-            embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
-            n_chunks = len(embeddings_chunks)
-            results_per_chunk = 8 // n_chunks + 1 # Gather 8 results per source.
-            for chunk_id in range(n_chunks):
-                index = faiss.read_index(f"{embeddings_folder}faisschunk_{chunk_id}.index")
+        if not self.preload_indices:
+            for folder in self.folders:
+                folder_start_time = time.perf_counter()
+                embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
+                embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
+                n_chunks = len(embeddings_chunks)
+                results_per_chunk = 8 // n_chunks + 1 # Gather 8 results per source.
+                for chunk_id in range(n_chunks):
+                    index = faiss.read_index(f"{embeddings_folder}faisschunk_{chunk_id}.index")
+                    scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
+                    with open(f"{embeddings_folder}textbatches_{chunk_id}.pkl", "rb") as f:
+                        chunk_texts: list[Document] = pickle.load(f)
+                    for score, idx in zip(scores[0], indices[0]):
+                        if idx < len(chunk_texts):
+                            all_results.append((score, chunk_texts[idx]))
+                print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
+        else:
+            for index in self.preload_indices:
                 scores, indices = index.search(np.array([query_embedding]), results_per_chunk)
-                with open(f"{embeddings_folder}textbatches_{chunk_id}.pkl", "rb") as f:
-                    chunk_texts: list[Document] = pickle.load(f)
                 for score, idx in zip(scores[0], indices[0]):
-                    if idx < len(chunk_texts):
-                        all_results.append((score, chunk_texts[idx]))
-            print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
+                    if idx < len(self.preloaded_docs[index]):
+                        all_results.append((score, self.preloaded_docs[index][idx]))
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])

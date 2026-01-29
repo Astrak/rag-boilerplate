@@ -104,7 +104,8 @@ def search(request: SearchRequest):
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
     # analysis_graph.folders = sources.split(',')
-    result = analysis_graph.retrieve({'question': request.question, 'discussion': ''}) 
+    search_graph.preload_indices()
+    result = search_graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
