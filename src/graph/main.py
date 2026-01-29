@@ -87,7 +87,7 @@ class Graph:
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(chunk_texts):
                         all_results.append((score, chunk_texts[idx]))
-            print(f'\033[94mGRAPH: Embeddings: {folder}: {(time.perf_counter() - folder_start_time) * 1_000}ms')
+            print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])
@@ -95,7 +95,7 @@ class Graph:
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
         context = [item[1] for item in relevancy_culled_list] 
-        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {(time.perf_counter() - start_time) * 1_000_000}s')
+        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000_000):.0f}s')
         return context
     
     def invoke(self, question, discussion = ""):
