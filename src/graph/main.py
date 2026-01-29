@@ -9,7 +9,6 @@ import os
 import faiss
 import pickle
 import numpy as np 
-from datetime import datetime, timedelta
 
 def gemini_tokens_approx(text: str) -> int:
     return len(text) // 4 + 1 
@@ -73,9 +72,9 @@ class Graph:
     
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
-        start_time = datetime.utcnow()
+        start_time = time.perf_counter()
         for folder in self.folders:
-            folder_start_time = datetime.utcnow()
+            folder_start_time = time.perf_counter()
             embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
             embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
             n_chunks = len(embeddings_chunks)
@@ -88,7 +87,7 @@ class Graph:
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(chunk_texts):
                         all_results.append((score, chunk_texts[idx]))
-            print(f'\033[94mGRAPH: Embeddings: {folder}: {timedelta(seconds=int((datetime.utcnow() - start_time))) * 1000}ms')
+            print(f'\033[94mGRAPH: Embeddings: {folder}: {(folder_start_time - time.perf_counter()) * 1000}ms')
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])
@@ -96,7 +95,7 @@ class Graph:
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
         context = [item[1] for item in relevancy_culled_list] 
-        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {timedelta(seconds=int((datetime.utcnow() - start_time))) * 1000}ms')
+        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {(time.perf_counter() - start_time) * 1000}ms')
         return context
     
     def invoke(self, question, discussion = ""):
