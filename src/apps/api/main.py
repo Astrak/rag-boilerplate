@@ -46,12 +46,10 @@ try:
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources', e)
 
-search_prompt = get_search_prompt()
 analyze_prompt = get_analyze_prompt()
 
-search_graph = Graph(search_prompt, sources)
-search_graph.preload_indices()
-analysis_graph = Graph(analyze_prompt, sources)
+graph = Graph(analyze_prompt, sources)
+graph.preload_indices()
 
 allowed_origins = [
     "https://polemia.surge.sh",
@@ -105,7 +103,7 @@ def search(request: SearchRequest):
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
     # analysis_graph.folders = sources.split(',')
-    result = search_graph.retrieve({'question': request.question, 'discussion': ''}) 
+    result = graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
@@ -120,7 +118,7 @@ def search(request: SearchRequest):
     print('SUMUP: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     # search_graph.folders = sources.split(',')
-    result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('\033[93mSUMUP: Answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
@@ -132,7 +130,7 @@ def search(request: SearchRequest):
     print('SUMUP: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     # search_graph.folders = sources.split(',')
-    result = search_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('\033[93mSUMUP: Answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
@@ -144,6 +142,6 @@ def search(request: SearchRequest):
     print('ANALYZE: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     # analysis_graph.folders = sources.split(',')
-    result = analysis_graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print('\033[93mANALYZE: Answered in ' + str(datetime.utcnow() - time))
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
