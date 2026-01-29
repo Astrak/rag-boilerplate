@@ -87,6 +87,7 @@ class Graph:
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
         start_time = time.perf_counter()
+        results_per_chunk = 4
         if not self.preloaded_indices:
             for folder in self.folders:
                 folder_start_time = time.perf_counter()
