@@ -49,10 +49,11 @@ class Graph:
             embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
             for f in os.listdir(embeddings_folder):
                 if f.startswith('faisschunk_') and f.endswith('.index'):
-                    print(f"In folder {folder}, reading file {f}")
-                    self.preload_indices[f] = faiss.read_index(f)
-                    with open(f.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as f:
-                        self.preloaded_docs[f] = pickle.load(f)
+                    file = embeddings_folder + f
+                    print(f"In folder {folder}, reading file {file}")
+                    self.preload_indices[file] = faiss.read_index(file)
+                    with open(file.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as ff:
+                        self.preloaded_docs[file] = pickle.load(ff)
 
     def retrieve(self, state: State):
         print(f'\033[94mGRAPH: Retrieve: Received question: {state["question"]}')
