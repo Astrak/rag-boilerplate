@@ -95,7 +95,7 @@ class Graph:
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.6] # Remove elements with a dissimilarity superior to 1.6 (absolute filter)
         context = [item[1] for item in relevancy_culled_list] 
-        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) / 1_000_000):.0f}s')
+        print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) / 1_000_000):.2f}s')
         return context
     
     def invoke(self, question, discussion = ""):
