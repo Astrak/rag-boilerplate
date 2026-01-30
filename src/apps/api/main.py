@@ -33,10 +33,10 @@ try:
         for obj in bucket.objects.all():
             file = obj.key
             files.append(file)
-        print(files)
+        print(f"Files to download from bucket: {files}")
         for file in files:
-            print(file)
             if file.endswith('/') or ".pdf" or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
+                print(f"Skipping {file}")
                 continue
             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
