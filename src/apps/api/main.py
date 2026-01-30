@@ -31,16 +31,16 @@ try:
         bucket = s3.Bucket("rag-faiss-index-bucket")
         files = []
         for obj in bucket.objects.all():
-            print(obj, obj.key)
             file = obj.key
             files.append(file)
+        print(files)
         for file in files:
+            print(file)
             if file.endswith('/') or ".pdf" or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
                 continue
             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
-            s3.download_file(
-                Bucket="rag-faiss-index-bucket", 
+            s3.Bucket("rag-faiss-index-bucket").download_file(
                 Filename=f"knowledge-sources/{file}", 
                 Key=file
             )
