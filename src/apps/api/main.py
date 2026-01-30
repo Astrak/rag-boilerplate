@@ -27,7 +27,7 @@ fill_env()
 try:
     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
     if sync:
-        s3 = boto3.client("s3")
+        s3 = boto3.client("s3", region_name="eu-north-1")
         files = []
         paginator = s3.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket="rag-faiss-index-bucket"):
