@@ -27,7 +27,7 @@ fill_env()
 try:
     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
     if sync:
-        s3 = boto3.resource("s3")
+        s3 = boto3.resource("s3", region_name="eu-north-1")
         bucket = s3.Bucket("rag-faiss-index-bucket")
         files = []
         for obj in bucket.objects.all():
