@@ -10,6 +10,7 @@ from typing_extensions import TypedDict
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from datetime import datetime
 from enum import Enum, auto
+import time
 import os
 import boto3
 
@@ -97,8 +98,8 @@ class Resource(TypedDict):
 
 @app.post("/retrieve")
 def search(request: SearchRequest):
-    time = datetime.utcnow()
-    print('\033[93mRETRIEVE: Request received at: ' + str(time))
+    start_time = time.perf_counter()
+    print('\033[93mRETRIEVE: Request received at: ' + str(datetime.utcnow()))
     print('RETRIEVE: Question is: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
@@ -107,7 +108,7 @@ def search(request: SearchRequest):
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-    print('\033[93mRETRIEVE: Answered in ' + str(datetime.utcnow() - time))
+    print(f'\033[93mRETRIEVE: Answered in {(time.perf_counter() - start_time):.3f}')
     return {"resources": resources}
 
 @app.post("/sumup")
