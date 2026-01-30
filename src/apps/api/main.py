@@ -31,6 +31,7 @@ try:
         bucket = s3.Bucket("rag-faiss-index-bucket")
         files = []
         for obj in bucket.objects.all():
+            print(obj)
             file = obj.key
             files.append(file)
         for file in files:
