@@ -14,14 +14,6 @@ import time
 import os
 import boto3
 
-sources = os.getenv("SOURCES")
-if not sources:
-    print("No SOURCES variable specified, using all sources in the knowledge-sources folder:")
-    sources = os.listdir("./knowledge-sources/")
-else:
-    sources = sources.split(',')
-print("Running RAG from sources: ", sources)
-
 fill_env()
 
 try:
@@ -46,6 +38,14 @@ try:
             )
 except Exception as e:
     raise ValueError('Didnt understand what to do with knowledge sources', e)
+
+sources = os.getenv("SOURCES")
+if not sources:
+    print("No SOURCES variable specified, using all sources in the knowledge-sources folder:")
+    sources = os.listdir("./knowledge-sources/")
+else:
+    sources = sources.split(',')
+print("Running RAG from sources: ", sources)
 
 analyze_prompt = get_analyze_prompt()
 
