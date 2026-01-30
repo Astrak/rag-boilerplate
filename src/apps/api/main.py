@@ -24,28 +24,28 @@ print("Running RAG from sources: ", sources)
 
 fill_env()
 
-# try:
-#     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
-#     if sync:
-#         s3 = boto3.client("s3")
-#         files = []
-#         paginator = s3.get_paginator("list_objects_v2")
-#         for page in paginator.paginate(Bucket="rag-faiss-index-bucket"):
-#             for cp in page.get("Contents", []):
-#                 file = cp["Key"]
-#                 files.append(file)
-#         for file in files:
-#             if file.endswith('/') or ".pdf" or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
-#                 continue
-#             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
-#             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
-#             s3.download_file(
-#                 Bucket="rag-faiss-index-bucket", 
-#                 Filename=f"knowledge-sources/{file}", 
-#                 Key=file
-#             )
-# except Exception as e:
-#     raise ValueError('Didnt understand what to do with knowledge sources', e)
+try:
+    sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
+    if sync:
+        s3 = boto3.client("s3")
+        files = []
+        paginator = s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket="rag-faiss-index-bucket"):
+            for cp in page.get("Contents", []):
+                file = cp["Key"]
+                files.append(file)
+        for file in files:
+            if file.endswith('/') or ".pdf" or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
+                continue
+            print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
+            os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
+            s3.download_file(
+                Bucket="rag-faiss-index-bucket", 
+                Filename=f"knowledge-sources/{file}", 
+                Key=file
+            )
+except Exception as e:
+    raise ValueError('Didnt understand what to do with knowledge sources', e)
 
 analyze_prompt = get_analyze_prompt()
 
