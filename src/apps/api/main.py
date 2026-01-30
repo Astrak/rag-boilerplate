@@ -35,7 +35,7 @@ try:
             files.append(file)
         print(f"Files to download from bucket: {files}")
         for file in files:
-            if file.endswith('/') or ".pdf" or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
+            if file.endswith('/') or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
                 print(f"Skipping {file}")
                 continue
             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
