@@ -1,4 +1,3 @@
-from apps.api.search_prompt import get_search_prompt
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
@@ -8,11 +7,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 from typing_extensions import TypedDict
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
-from enum import Enum, auto
+from enum import Enum
 from datetime import datetime
 import time
 import os
-import boto3
 
 fill_env()
 
