@@ -117,7 +117,7 @@ def search(request: SearchRequest):
     print('ANALYZE: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     answer_size = 160 + (int(request.answerSize) - 1) * 150
-    print('ANALYZE: Answer size requested is: ' + request.answerSize)
+    print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     # analysis_graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
     result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
