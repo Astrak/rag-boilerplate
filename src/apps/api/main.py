@@ -83,9 +83,9 @@ def home():
     return "hello world"
 
 class AnswerSize(str, Enum):
-    SMALL = "170" 
-    MEDIUM = "400"
-    BIG = "800"
+    SMALL = "1" 
+    MEDIUM = "2"
+    BIG = "3"
 
 class SearchRequest(BaseModel):
     question: str
@@ -111,30 +111,6 @@ def search(request: SearchRequest):
     print(f'\033[93mRETRIEVE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"resources": resources}
 
-@app.post("/sumup")
-def search(request: SearchRequest):
-    start_time = time.time()
-    print('\033[93mSUMUP: Request received at: ' + str(datetime.fromtimestamp(start_time)))
-    print('SUMUP: Question is: ' + request.question)
-    print('SUMUP: Sources are: ' + ", ".join(request.sources))
-    sources = ",".join([f"./{src}/" for src in request.sources])
-    # search_graph.folders = sources.split(',')
-    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print(f'\033[93mSUMUP: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
-    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
-
-@app.post("/search")
-def search(request: SearchRequest):
-    start_time = time.time()
-    print('\033[93mSUMUP: Request received at: ' + str(datetime.fromtimestamp(start_time)))
-    print('SUMUP: Question is: ' + request.question)
-    print('SUMUP: Sources are: ' + ", ".join(request.sources))
-    sources = ",".join([f"./{src}/" for src in request.sources])
-    # search_graph.folders = sources.split(',')
-    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print(f'\033[93mSUMUP: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
-    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
-
 @app.post("/analyze")
 def search(request: SearchRequest):
     start_time = time.time()
@@ -142,6 +118,7 @@ def search(request: SearchRequest):
     print('ANALYZE: Question is: ' + request.question)
     print('ANALYZE: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
+    print('ANALYZE: Answer size requested is: ' + request.answerSize)
     # analysis_graph.folders = sources.split(',')
     result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
