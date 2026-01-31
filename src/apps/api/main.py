@@ -118,8 +118,10 @@ def search(request: SearchRequest):
     print('ANALYZE: Question is: ' + request.question)
     print('ANALYZE: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
+    answer_size = 160 + (int(request.answerSize) - 1) * 300
     print('ANALYZE: Answer size requested is: ' + request.answerSize)
     # analysis_graph.folders = sources.split(',')
+    graph.prompt = get_analyze_prompt(answer_size)
     result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
