@@ -98,7 +98,7 @@ class Resource(TypedDict):
 
 @app.post("/retrieve")
 def search(request: SearchRequest):
-    start_time = time.perf_counter()
+    start_time = time.time()
     print('\033[93mRETRIEVE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('RETRIEVE: Question is: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
@@ -108,41 +108,41 @@ def search(request: SearchRequest):
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-    print(f'\033[93mRETRIEVE: Answered in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
+    print(f'\033[93mRETRIEVE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"resources": resources}
 
 @app.post("/sumup")
 def search(request: SearchRequest):
-    start_time = time.perf_counter()
+    start_time = time.time()
     print('\033[93mSUMUP: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('SUMUP: Question is: ' + request.question)
     print('SUMUP: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     # search_graph.folders = sources.split(',')
     result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print(f'\033[93mSUMUP: Answered in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
+    print(f'\033[93mSUMUP: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/search")
 def search(request: SearchRequest):
-    start_time = time.perf_counter()
+    start_time = time.time()
     print('\033[93mSUMUP: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('SUMUP: Question is: ' + request.question)
     print('SUMUP: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     # search_graph.folders = sources.split(',')
     result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print(f'\033[93mSUMUP: Answered in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
+    print(f'\033[93mSUMUP: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost']}
 
 @app.post("/analyze")
 def search(request: SearchRequest):
-    start_time = time.perf_counter()
+    start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('ANALYZE: Question is: ' + request.question)
     print('ANALYZE: Sources are: ' + ", ".join(request.sources))
     sources = ",".join([f"./{src}/" for src in request.sources])
     # analysis_graph.folders = sources.split(',')
     result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
-    print(f'\033[93mANALYZE: Answered in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
+    print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
