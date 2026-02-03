@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, START
 from typing_extensions import TypedDict, List
+from typing import AsyncGenerator, Dict
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain.chat_models import init_chat_model
@@ -64,7 +65,7 @@ class Graph:
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
-    def generate(self, state: State):
+    async def generate(self, state: State):
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
@@ -72,18 +73,42 @@ class Graph:
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         str_context = "\n\n".join(context)
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
-        start_time = time.time()
-        response = self.llm.invoke(messages)
         input_text = messages.to_string()
         print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
-        output_text = response.content
-        print(f"\033[94mGRAPH: Output text from LLM is {len(output_text)} characters long")
-        cost_estimation = gemini_cost_approx(input_text, output_text)
-        delay = time.time() - start_time
+        start_time = time.time()
+        full_answer = ""
+        async for chunk in self.llm.astream(messages):
+            if chunk.content:
+                resources_data = []
+                if not full_answer:
+                    resources_data = resources
+                full_answer += chunk.content
+                yield { "answer": chunk.content, "resources": resources_data }
         print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
-        print(f"\033[94mGRAPH: Answer :\n{response.content}")
+        print(f"\033[94mGRAPH: Answer :\n{full_answer}")
+        cost_estimation = gemini_cost_approx(input_text, full_answer)
+        delay = time.time() - start_time
+        print(f"\033[94mGRAPH: Output text from LLM is {len(full_answer)} characters long")
+        yield {
+            "answer": full_answer,
+            "cost": cost_estimation,
+            "__final__": True
+        }
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
-    
+
+    async def astream_answer(self, question: str) -> AsyncGenerator[Dict[str, Any], None]:
+        """Main streaming entry point"""
+        initial_state = {"question": question}
+        async for update in self.compiled.astream(
+            initial_state,
+            stream_mode="updates"   # or "values" if you prefer full state each time
+        ):
+            # update has shape: {"node_name": {key: value_or_delta}}
+            if "generate" in update:
+                # We yield exactly what generate yields (deltas + final)
+                async for delta in update["generate"]:
+                    yield delta
+
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
         start_time = time.perf_counter()

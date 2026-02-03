@@ -3,6 +3,7 @@ from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from typing_extensions import TypedDict
@@ -110,7 +111,30 @@ def search(request: SearchRequest):
     return {"resources": resources}
 
 @app.post("/analyze")
-def search(request: SearchRequest):
+async def search(request: SearchRequest):
+    async def event_generator():
+        # SSE format: data: {"answer": "tok"} \n\n
+        #             data: {"answer": "en"} \n\n
+        #             ...
+        #             data: {"answer": "full text", "otherData": {...}, "__final__": true} \n\n
+
+        async for event in graph.astream_answer(request.question):
+            if "__final__" in event:
+                yield f"data: {event['answer']}\n\ndata: {{\"otherData\": {event['other_data']}}}\n\ndata: [DONE]\n\n"
+            else:
+                if "answer" in event:
+                    yield f"data: {event['answer']}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"   # important for nginx reverse proxy
+        }
+    )
     start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('ANALYZE: Question is: ' + request.question)
