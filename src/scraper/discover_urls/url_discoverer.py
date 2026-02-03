@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from collections import Counter
 
 DELAY = 0.05 # delay to not Ddos the server
-IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml", ".docx", ".mp4", '.wma', '.mp3', '.doc'}
+IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml", ".docx", ".mp4", '.wma', '.mp3', '.doc', '.webp', ".gif"}
 DONT_VISIT_BUT_RECORD = {".pdf"}
 VISIT_BUT_DONT_RECORD = {"/page/", "?page="}
 
