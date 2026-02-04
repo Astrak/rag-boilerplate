@@ -5,6 +5,7 @@ from graph.main import Graph
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
 from typing import Optional, List
 from typing_extensions import TypedDict
@@ -136,9 +137,10 @@ async def stream_analyze(request: SearchRequest):
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
-    graph.prompt = get_analyze_prompt(answer_size)
+    # graph.prompt = get_analyze_prompt(answer_size)
+    graph.prompt = PromptTemplate.from_template(request.question)
     print('TRIGGERED')
-    async for chunk in graph.llm.astream(request.question):
+    async for chunk in graph.llm.astream(graph.prompt):
         if chunk.content:
             print(chunk.content)
     return True
