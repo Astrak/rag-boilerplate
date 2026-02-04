@@ -27,7 +27,7 @@ class Resource(TypedDict):
 
 class State(TypedDict):
     question: str
-    discussion: str
+    discussion: str = ""
     context: List[Document]
     answer: str
     resources: List[Resource]
