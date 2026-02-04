@@ -65,7 +65,7 @@ class Graph:
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
-    async def generate(self, state: State) -> AsyncGenerator[Dict, None]:
+    async def generate(self, state: State):
         start_time = time.time()
         context: list[str] = []
         resources: list[Resource] = []
