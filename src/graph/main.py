@@ -72,7 +72,7 @@ class Graph:
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        yield { 'resources': resources }
+        # yield { 'resources': resources }
         str_context = "\n\n".join(context)
         messages = self.prompt.invoke({"question": state["question"], "context": str_context})
         input_text = messages.to_string()
