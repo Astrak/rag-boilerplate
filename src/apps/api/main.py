@@ -138,16 +138,10 @@ async def stream_analyze(request: SearchRequest):
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
     print('TRIGGERED')
-    graph.astream_invoke(request.question)
-    return {"Triggered": True}
-
-    # async def event_generator():
-    #     async for event in graph.astream_with_tokens(request.question):
-    #         if "__final__" in event:
-    #             yield f"data: {event['answer']}\n\ndata: {{\"otherData\": {event['other_data']}}}\n\ndata: [DONE]\n\n"
-    #         else:
-    #             if "answer" in event:
-    #                 yield f"data: {event['answer']}\n\n"
+    async for chunk in graph.llm.astream(request.question):
+        if chunk.content:
+            print(chunk.content)
+    return True
 
     #     yield "data: [DONE]\n\n"
     # async def event_generator():
