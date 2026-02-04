@@ -121,7 +121,7 @@ def analyze(request: SearchRequest):
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
-    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    result = graph.invoke(request.question) 
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
 
@@ -142,7 +142,7 @@ async def stream_analyze(request: SearchRequest):
         #             ...
         #             data: {"answer": "full text", "otherData": {...}, "__final__": true} \n\n
 
-        async for event in graph.astream_answer(request.question):
+        async for event in graph.astream_invoke(request.question):
             if "__final__" in event:
                 yield f"data: {event['answer']}\n\ndata: {{\"otherData\": {event['other_data']}}}\n\ndata: [DONE]\n\n"
             else:

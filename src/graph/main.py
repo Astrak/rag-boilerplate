@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START
 from typing_extensions import TypedDict, List
-from typing import AsyncGenerator, Dict
+from typing import Any, AsyncGenerator, Dict
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain.chat_models import init_chat_model
@@ -65,46 +65,39 @@ class Graph:
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
-    async def generate(self, state: State):
+    async def generate(self, state: State) -> AsyncGenerator[Dict, None]:
+        start_time = time.time()
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
+        yield { 'resources': resources }
         str_context = "\n\n".join(context)
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         input_text = messages.to_string()
         print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
-        start_time = time.time()
         full_answer = ""
         async for chunk in self.llm.astream(messages):
             if chunk.content:
-                resources_data = []
-                if not full_answer:
-                    resources_data = resources
                 full_answer += chunk.content
-                yield { "answer": chunk.content, "resources": resources_data }
+                yield { 'answer': chunk.content}
+        delay = time.time() - start_time
         print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
         print(f"\033[94mGRAPH: Answer :\n{full_answer}")
         cost_estimation = gemini_cost_approx(input_text, full_answer)
-        delay = time.time() - start_time
         print(f"\033[94mGRAPH: Output text from LLM is {len(full_answer)} characters long")
         yield {
             "answer": full_answer,
             "cost": cost_estimation,
+            "resources": resources,
             "__final__": True
         }
-        return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
 
     async def astream_invoke(self, question: str) -> AsyncGenerator[Dict[str, Any], None]:
         initial_state = {"question": question}
-        async for update in self.compiled.astream(
-            initial_state,
-            stream_mode="updates"   # or "values" if you prefer full state each time
-        ):
-            # update has shape: {"node_name": {key: value_or_delta}}
+        async for update in self.graph.astream(initial_state, stream_mode="updates"):
             if "generate" in update:
-                # We yield exactly what generate yields (deltas + final)
                 async for delta in update["generate"]:
                     yield delta
 
