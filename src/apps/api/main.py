@@ -125,7 +125,7 @@ def analyze(request: SearchRequest):
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
 
-@app.post("stream-analyze")
+@app.post("/stream-analyze")
 async def stream_analyze(request: SearchRequest):
     start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
