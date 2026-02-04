@@ -96,8 +96,7 @@ class Graph:
         }
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
 
-    async def astream_answer(self, question: str) -> AsyncGenerator[Dict[str, Any], None]:
-        """Main streaming entry point"""
+    async def astream_invoke(self, question: str) -> AsyncGenerator[Dict[str, Any], None]:
         initial_state = {"question": question}
         async for update in self.compiled.astream(
             initial_state,
@@ -130,7 +129,8 @@ class Graph:
                             all_results.append((score, chunk_texts[idx]))
                 print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         else:
-            for file in self.preloaded_indices:
+            filtered_indices = [file for file in self.preloaded_indices if file.split('/')[2] in self.folders]
+            for file in filtered_indices:
                 scores, indices = self.preloaded_indices[file].search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(self.preloaded_docs[file]):
