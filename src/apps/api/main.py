@@ -137,11 +137,6 @@ async def stream_analyze(request: SearchRequest):
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
     async def event_generator():
-        # SSE format: data: {"answer": "tok"} \n\n
-        #             data: {"answer": "en"} \n\n
-        #             ...
-        #             data: {"answer": "full text", "otherData": {...}, "__final__": true} \n\n
-
         async for event in graph.astream_invoke(request.question):
             if "__final__" in event:
                 yield f"data: {event['answer']}\n\ndata: {{\"otherData\": {event['other_data']}}}\n\ndata: [DONE]\n\n"
