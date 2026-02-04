@@ -74,7 +74,7 @@ class Graph:
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         yield { 'resources': resources }
         str_context = "\n\n".join(context)
-        messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
+        messages = self.prompt.invoke({"question": state["question"], "context": str_context]})
         input_text = messages.to_string()
         print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
         full_answer = ""
