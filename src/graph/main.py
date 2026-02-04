@@ -122,7 +122,10 @@ class Graph:
                             all_results.append((score, chunk_texts[idx]))
                 print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         else:
-            for file in [f for f in self.preloaded_indices if any(f in folder for folder in self.folders)]:
+            filtered_indices = [f for f in self.preloaded_indices if any(f in folder for folder in self.folders)]
+            print(self.folders)
+            print(filtered_indices)
+            for file in filtered_indices:
                 scores, indices = self.preloaded_indices[file].search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(self.preloaded_docs[file]):
