@@ -137,10 +137,10 @@ async def stream_analyze(request: SearchRequest):
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
-    # graph.prompt = get_analyze_prompt(answer_size)
-    graph.prompt = PromptTemplate.from_template(request.question)
+    graph.prompt = get_analyze_prompt(answer_size)
+    prompt = PromptTemplate.from_template(request.question).invoke({'question': request.question, 'context': "c'est le soir"})
     print('TRIGGERED')
-    async for chunk in graph.llm.astream(graph.prompt):
+    async for chunk in graph.llm.astream(prompt):
         if chunk.content:
             print(chunk.content)
     return True
