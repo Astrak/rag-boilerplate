@@ -65,24 +65,23 @@ class Graph:
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
-    async def generate(self, state: State):
+    async def generate(self, state: State) -> AsyncGenerator[Dict, None]:
         start_time = time.time()
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        # yield { 'resources': resources }
+        yield { 'resources': resources }
         str_context = "\n\n".join(context)
         messages = self.prompt.invoke({"question": state["question"], "context": str_context})
         input_text = messages.to_string()
         print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
         full_answer = ""
-        response = await self.llm.astream(messages)
-        return {'answer': response.content}
         async for chunk in self.llm.astream(messages):
             if chunk.content:
                 full_answer += chunk.content
+                print(chunk.content)
                 yield { 'answer': chunk.content}
         delay = time.time() - start_time
         print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
@@ -139,26 +138,6 @@ class Graph:
         context = [item[1] for item in relevancy_culled_list] 
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
         return context
-    
-    async def astream_with_tokens(self, question: str):
-        async for event in self.graph.astream_events(
-            {"question": question},
-            version="v2",                 # required in recent versions
-            stream_mode="values"          # or "updates" — values is often easier here
-        ):
-            if event["event"] == "on_chat_model_stream":
-                chunk = event["data"]["chunk"]
-                if chunk.content:
-                    yield {"delta": chunk.content}
-
-            elif event["event"] == "on_chain_end" and event["name"] == "generate":
-                final_state = event["data"]["output"]
-                yield {
-                    "delta": None,
-                    "full_answer": final_state.get("answer", ""),
-                    "other_data": final_state.get("other_data", {}),
-                    "done": True
-                }
     
     def invoke(self, question, discussion = ""):
         return self.graph.invoke({"question": question, "discussion": discussion}) # type: ignore

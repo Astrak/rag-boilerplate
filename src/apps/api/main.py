@@ -137,8 +137,12 @@ async def stream_analyze(request: SearchRequest):
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
+    print('TRIGGERED')
+    graph.astream_invoke(request.question)
+    return {"Triggered": True}
+
     # async def event_generator():
-    #     async for event in graph.astream_invoke(request.question):
+    #     async for event in graph.astream_with_tokens(request.question):
     #         if "__final__" in event:
     #             yield f"data: {event['answer']}\n\ndata: {{\"otherData\": {event['other_data']}}}\n\ndata: [DONE]\n\n"
     #         else:
@@ -146,19 +150,19 @@ async def stream_analyze(request: SearchRequest):
     #                 yield f"data: {event['answer']}\n\n"
 
     #     yield "data: [DONE]\n\n"
-    async def event_generator():
-        async for ev in graph.astream_with_tokens(request.question):
-            if ev.get("done"):
-                yield f"data: {json.dumps({'full': ev['full_answer'], 'otherData': ev['other_data']})}\n\n"
-                yield "data: [DONE]\n\n"
-            elif ev.get("delta"):
-                yield f"data: {ev['delta']}\n\n"
+    # async def event_generator():
+    #     async for ev in graph.astream_with_tokens(request.question):
+    #         if ev.get("done"):
+    #             yield f"data: {json.dumps({'full': ev['full_answer'], 'otherData': ev['other_data']})}\n\n"
+    #             yield "data: [DONE]\n\n"
+    #         elif ev.get("delta"):
+    #             yield f"data: {ev['delta']}\n\n"
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no"   # important for nginx reverse proxy
-        }
-    )
+    # return StreamingResponse(
+    #     event_generator(),
+    #     media_type="text/event-stream",
+    #     headers={
+    #         "Cache-Control": "no-cache",
+    #         "X-Accel-Buffering": "no"   # important for nginx reverse proxy
+    #     }
+    # )
