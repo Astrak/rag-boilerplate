@@ -123,8 +123,6 @@ class Graph:
                 print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         else:
             filtered_indices = [f for f in self.preloaded_indices if any(f.split('/')[2] in folder for folder in self.folders)]
-            print(self.folders)
-            print(filtered_indices)
             for file in filtered_indices:
                 scores, indices = self.preloaded_indices[file].search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
