@@ -139,23 +139,23 @@ async def stream_analyze(request: SearchRequest):
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
     async def event_generator():
-        async for event in graph.astream_events(request.question):
-            kind = event["event"]
-            if kind == "on_chat_model_stream":
-                content = event["data"]["chunk"].content
-                if content:
-                    answer_event = {
-                        "type": "token",
-                        "data": content
-                    }
-                    print(content)
-                    yield f"data: {json.dumps(answer_event)}\n\n"
-                    done_event = {"type": "done"}
-        yield f"data: {json.dumps(done_event)}\n\n"
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream"
-    )
+        try:
+            async for event in graph.astream_events(request.question):
+                kind = event["event"]
+                if kind == "on_chat_model_stream":
+                    content = event["data"]["chunk"].content
+                    if content:
+                        answer_event = {
+                            "type": "token",
+                            "data": content
+                        }
+                        print(content)
+                        yield f"data: {json.dumps(answer_event)}\n\n"
+                        done_event = {"type": "done"}
+            yield f"data: {json.dumps(done_event)}\n\n"
+        finally:
+            pass
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
     # THIS WORKS
     # prompt = PromptTemplate.from_template(request.question).invoke({'question': request.question, 'context': "c'est le soir"})
