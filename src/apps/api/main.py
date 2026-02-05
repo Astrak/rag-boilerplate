@@ -143,6 +143,7 @@ async def stream_analyze(request: SearchRequest):
             async for event in graph.astream_events(request.question):
                 kind = event["event"]
                 if kind == "on_chain_start":
+                    print(event)
                     resources: list[Resource] = []
                     for doc in event["data"]["input"]['context']:
                         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
