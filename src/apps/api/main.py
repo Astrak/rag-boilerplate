@@ -144,9 +144,10 @@ async def stream_analyze(request: SearchRequest):
                 kind = event["event"]
                 if kind == "on_chain_start":
                     if event["data"].get('input'):
+                        print('SENDING RESOURCES')
                         resources: list[Resource] = []
-                        # for doc in event["data"]["input"]['context']:
-                        #     resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+                        for doc in event["data"]["input"]['context']:
+                            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
                         yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
                     else:
                         print("ERROR input not found")
