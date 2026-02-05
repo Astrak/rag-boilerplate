@@ -66,6 +66,25 @@ class Graph:
         return {"context": matching_documents}
 
     async def generate(self, state: State) -> AsyncGenerator[Dict, None]:
+        context: list[str] = []
+        resources: list[Resource] = []
+        for doc in state['context']:
+            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+            context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
+        str_context = "\n\n".join(context)
+        messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
+        start_time = time.time()
+        response = await self.llm.ainvoke(messages)
+        input_text = messages.to_string()
+        print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
+        output_text = response.content
+        print(f"\033[94mGRAPH: Output text from LLM is {len(output_text)} characters long")
+        cost_estimation = gemini_cost_approx(input_text, output_text)
+        delay = time.time() - start_time
+        print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
+        print(f"\033[94mGRAPH: Answer :\n{response.content}")
+        return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
+    
         start_time = time.time()
         context: list[str] = []
         resources: list[Resource] = []
@@ -139,5 +158,8 @@ class Graph:
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
         return context
     
-    def invoke(self, question, discussion = ""):
-        return self.graph.invoke({"question": question, "discussion": discussion}) # type: ignore
+    async def ainvoke(self, question, discussion = ""):
+        return await self.graph.ainvoke({"question": question, "discussion": discussion}) 
+    
+    async def astream_events(self, question, discussion = ""):
+        return await self.graph.ainvoke({"question": question, "discussion": discussion}) 

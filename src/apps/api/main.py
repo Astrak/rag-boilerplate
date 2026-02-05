@@ -113,7 +113,7 @@ def retrieve(request: SearchRequest):
     return {"resources": resources}
 
 @app.post("/analyze")
-def analyze(request: SearchRequest):
+async def analyze(request: SearchRequest):
     start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('ANALYZE: Question is: ' + request.question)
@@ -123,7 +123,7 @@ def analyze(request: SearchRequest):
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
-    result = graph.invoke(request.question) 
+    result = await graph.ainvoke(request.question) 
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
 
@@ -138,12 +138,31 @@ async def stream_analyze(request: SearchRequest):
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
-    prompt = PromptTemplate.from_template(request.question).invoke({'question': request.question, 'context': "c'est le soir"})
-    print('TRIGGERED')
-    async for chunk in graph.llm.astream(prompt):
-        if chunk.content:
-            print(chunk.content)
-    return True
+    async def event_generator():
+        async for event in graph.astream_events(request.question):
+            kind = event["event"]
+            if kind == "on_chat_model_stream":
+                content = event["data"]["chunk"].content
+                if content:
+                    answer_event = {
+                        "type": "token",
+                        "data": content
+                    }
+                    yield f"data: {json.dumps(answer_event)}\n\n"
+                    done_event = {"type": "done"}
+        yield f"data: {json.dumps(done_event)}\n\n"
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream"
+    )
+
+    # THIS WORKS
+    # prompt = PromptTemplate.from_template(request.question).invoke({'question': request.question, 'context': "c'est le soir"})
+    # print('TRIGGERED')
+    # async for chunk in graph.llm.astream(prompt):
+    #     if chunk.content:
+    #         print(chunk.content)
+    # return True
 
     #     yield "data: [DONE]\n\n"
     # async def event_generator():
