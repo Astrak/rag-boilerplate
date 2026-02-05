@@ -141,12 +141,12 @@ async def stream_analyze(request: SearchRequest):
     async def event_generator():
         try:
             async for event in graph.astream_events(request.question):
+                print(event)
                 kind = event["event"]
                 if kind == "on_chain_start":
-                    print(event)
                     resources: list[Resource] = []
-                    for doc in event["data"]["input"]['context']:
-                        resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+                    # for doc in event["data"]["input"]['context']:
+                    #     resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
                     yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
