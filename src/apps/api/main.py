@@ -148,6 +148,7 @@ async def stream_analyze(request: SearchRequest):
                         "type": "token",
                         "data": content
                     }
+                    print(content)
                     yield f"data: {json.dumps(answer_event)}\n\n"
                     done_event = {"type": "done"}
         yield f"data: {json.dumps(done_event)}\n\n"
