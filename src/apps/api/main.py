@@ -146,17 +146,12 @@ async def stream_analyze(request: SearchRequest):
                     resources: list[Resource] = []
                     for doc in event["data"]["input"]['context']:
                         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-                    yield f"data: {json.dumps({ "resources": resources })}\n\n"
+                    yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
                     if content:
-                        answer_event = {
-                            "type": "token",
-                            "data": content
-                        }
-                        yield f"data: {json.dumps(answer_event)}\n\n"
-                        done_event = {"type": "done"}
-            yield f"data: {json.dumps(done_event)}\n\n"
+                        yield f"data: {json.dumps({ "type": "token", "data": content })}\n\n"
+            yield f"data: {json.dumps({"type": "done"})}\n\n"
         finally:
             print(f'\033[93mSTREAM-ANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
             pass
