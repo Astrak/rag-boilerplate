@@ -143,6 +143,11 @@ async def stream_analyze(request: SearchRequest):
             async for event in graph.astream_events(request.question):
                 print(event)
                 kind = event["event"]
+                if kind == "on_chain_start":
+                    resources: list[Resource] = []
+                    for doc in event["data"]["input"]['context']:
+                        resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+                    yield f"data: {json.dumps({ "resources": resources })}\n\n"
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
                     if content:
@@ -154,7 +159,7 @@ async def stream_analyze(request: SearchRequest):
                         done_event = {"type": "done"}
             yield f"data: {json.dumps(done_event)}\n\n"
         finally:
-            print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
+            print(f'\033[93mSTREAM-ANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
             pass
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
