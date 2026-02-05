@@ -161,5 +161,5 @@ class Graph:
     async def ainvoke(self, question, discussion = ""):
         return await self.graph.ainvoke({"question": question, "discussion": discussion}) 
     
-    async def astream_events(self, question, discussion = ""):
-        return await self.graph.astream_events({"question": question, "discussion": discussion}) 
+    def astream_events(self, question, discussion = ""):
+        return self.graph.astream_events({"question": question, "discussion": discussion}) 
