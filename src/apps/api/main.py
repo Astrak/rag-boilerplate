@@ -142,16 +142,14 @@ async def stream_analyze(request: SearchRequest):
         try:
             async for event in graph.astream_events(request.question):
                 kind = event["event"]
-                print(kind)
-                if event["data"]:
-                    print(list(event['data'].keys()))
-                    if event["data"].get('input'):
-                        print(list(event['data']['input'].keys()))
                 if kind == "on_chain_start":
-                    resources: list[Resource] = []
-                    # for doc in event["data"]["input"]['context']:
-                    #     resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-                    yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
+                    if event["data"].get('input'):
+                        resources: list[Resource] = []
+                        # for doc in event["data"]["input"]['context']:
+                        #     resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+                        yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
+                    else:
+                        print("ERROR input not found")
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
                     if content:
