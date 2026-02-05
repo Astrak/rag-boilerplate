@@ -114,12 +114,12 @@ class Graph:
             "__final__": True
         }
 
-    async def astream_invoke(self, question: str) -> AsyncGenerator[Dict[str, Any], None]:
-        initial_state = {"question": question}
-        async for update in self.graph.astream(initial_state, stream_mode="updates"):
-            if "generate" in update:
-                async for delta in update["generate"]:
-                    yield delta
+    # async def astream_invoke(self, question: str):
+    #     initial_state = {"question": question}
+    #     async for update in self.graph.astream(initial_state, stream_mode="updates"):
+    #         if "generate" in update:
+    #             async for delta in update["generate"]:
+    #                 yield delta
 
     def search_embeddings(self, query_embedding):
         all_results: list[Document] = []
@@ -162,4 +162,4 @@ class Graph:
         return await self.graph.ainvoke({"question": question, "discussion": discussion}) 
     
     async def astream_events(self, question, discussion = ""):
-        return await self.graph.ainvoke({"question": question, "discussion": discussion}) 
+        return await self.graph.astream_events({"question": question, "discussion": discussion}) 
