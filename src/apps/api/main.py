@@ -141,8 +141,12 @@ async def stream_analyze(request: SearchRequest):
     async def event_generator():
         try:
             async for event in graph.astream_events(request.question):
-                print(event)
                 kind = event["event"]
+                print(kind)
+                if event["data"]:
+                    print(event['data'].keys())
+                    if event["data"]['input']:
+                        print(event['data']['input'].keys())
                 if kind == "on_chain_start":
                     resources: list[Resource] = []
                     # for doc in event["data"]["input"]['context']:
