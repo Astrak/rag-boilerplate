@@ -1,3 +1,4 @@
+from langchain_xai import ChatXAI
 from langgraph.graph import StateGraph, START
 from typing_extensions import TypedDict, List
 from typing import Any, AsyncGenerator, Dict
@@ -42,7 +43,9 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
-        self.llm = init_chat_model("gemini-2.5-flash-lite", model_provider="google_genai", temperature=0.1)
+        self.llm = ChatXAI(
+            model="grok-4"
+        )
     
     def preload_indices(self):
         print('Pre-loading indices')
