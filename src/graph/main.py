@@ -85,34 +85,34 @@ class Graph:
         print(f"\033[94mGRAPH: Answer :\n{response.content}")
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
-        start_time = time.time()
-        context: list[str] = []
-        resources: list[Resource] = []
-        for doc in state['context']:
-            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-            context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        yield { 'resources': resources }
-        str_context = "\n\n".join(context)
-        messages = self.prompt.invoke({"question": state["question"], "context": str_context})
-        input_text = messages.to_string()
-        print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
-        full_answer = ""
-        async for chunk in self.llm.astream(messages):
-            if chunk.content:
-                full_answer += chunk.content
-                print(chunk.content)
-                yield { 'answer': chunk.content}
-        delay = time.time() - start_time
-        print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
-        print(f"\033[94mGRAPH: Answer :\n{full_answer}")
-        cost_estimation = gemini_cost_approx(input_text, full_answer)
-        print(f"\033[94mGRAPH: Output text from LLM is {len(full_answer)} characters long")
-        yield {
-            "answer": full_answer,
-            "cost": cost_estimation,
-            "resources": resources,
-            "__final__": True
-        }
+        # start_time = time.time()
+        # context: list[str] = []
+        # resources: list[Resource] = []
+        # for doc in state['context']:
+        #     resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+        #     context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
+        # yield { 'resources': resources }
+        # str_context = "\n\n".join(context)
+        # messages = self.prompt.invoke({"question": state["question"], "context": str_context})
+        # input_text = messages.to_string()
+        # print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
+        # full_answer = ""
+        # async for chunk in self.llm.astream(messages):
+        #     if chunk.content:
+        #         full_answer += chunk.content
+        #         print(chunk.content)
+        #         yield { 'answer': chunk.content}
+        # delay = time.time() - start_time
+        # print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
+        # print(f"\033[94mGRAPH: Answer :\n{full_answer}")
+        # cost_estimation = gemini_cost_approx(input_text, full_answer)
+        # print(f"\033[94mGRAPH: Output text from LLM is {len(full_answer)} characters long")
+        # yield {
+        #     "answer": full_answer,
+        #     "cost": cost_estimation,
+        #     "resources": resources,
+        #     "__final__": True
+        # }
 
     # async def astream_invoke(self, question: str):
     #     initial_state = {"question": question}
