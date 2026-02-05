@@ -156,6 +156,9 @@ async def stream_analyze(request: SearchRequest):
                     content = event["data"]["chunk"].content
                     if content:
                         yield f"data: {json.dumps({ "type": "token", "data": content })}\n\n"
+                if kind == "on_chain_end":
+                    if event['data'].get('output') and event['data']['output'].get('cost'):
+                        yield f"data: {json.dumps({ "type": "cost", "cost": event['data']['output']['cost'] })}"
             yield f"data: {json.dumps({"type": "done"})}\n\n"
         finally:
             print(f'\033[93mSTREAM-ANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
