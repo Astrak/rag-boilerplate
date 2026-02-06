@@ -18,11 +18,23 @@ import boto3
 
 fill_env()
 
+bucket_name = os.getenv("BUCKET")
+if not bucket_name:
+    raise EnvironmentError('No BUCKET variable specified')
+os.environ['BUCKET'] = bucket_name
+print("Bucket: ", bucket_name)
+
+bucket_region = os.getenv("BUCKET_REGION")
+if not bucket_region:
+    raise EnvironmentError('No BUCKET_REGION variable specified')
+os.environ['BUCKET_REGION'] = bucket_region
+print("Bucket region: ", bucket_region)
+
 try:
     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
     if sync:
-        s3 = boto3.resource("s3", region_name="eu-north-1")
-        bucket = s3.Bucket("rag-faiss-index-bucket")
+        s3 = boto3.resource("s3", region_name=bucket_region)
+        bucket = s3.Bucket(bucket_name)
         files = []
         for obj in bucket.objects.all():
             file = obj.key
@@ -34,7 +46,7 @@ try:
                 continue
             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
-            s3.Bucket("rag-faiss-index-bucket").download_file(
+            bucket.download_file(
                 Filename=f"knowledge-sources/{file}", 
                 Key=file
             )
@@ -57,6 +69,8 @@ graph.preload_indices()
 allowed_origins = [
     "https://polemia.surge.sh",
     "https://ia.polemia.com",
+    "https://lovable.app",
+    "https://lovable.dev"
 ]
 
 app = FastAPI()
