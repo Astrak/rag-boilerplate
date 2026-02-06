@@ -70,7 +70,9 @@ allowed_origins = [
     "https://polemia.surge.sh",
     "https://ia.polemia.com",
     "https://lovable.app",
-    "https://lovable.dev"
+    "https://lovable.dev",
+    "https://locableproject.com",
+    "https://iapolemia.lovable.app"
 ]
 
 app = FastAPI()
