@@ -44,7 +44,8 @@ class Graph:
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
         self.llm = ChatXAI(
-            model="grok-3-mini"
+            model="grok-3-mini",
+            streaming=True
         )
     
     def preload_indices(self):
