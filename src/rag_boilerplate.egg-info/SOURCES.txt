@@ -4,7 +4,6 @@ src/apps/api/analyze_prompt.py
 src/apps/api/env.py
 src/apps/api/ip_throttler_middleware.py
 src/apps/api/main.py
-src/apps/api/search_prompt.py
 src/apps/telegram/env.py
 src/apps/telegram/main.py
 src/apps/telegram/prompt.py

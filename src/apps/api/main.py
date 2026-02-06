@@ -1,8 +1,11 @@
+import json
 from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from graph.main import Graph
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
 from typing import Optional, List
 from typing_extensions import TypedDict
@@ -96,13 +99,13 @@ class Resource(TypedDict):
     title: str
 
 @app.post("/retrieve")
-def search(request: SearchRequest):
+def retrieve(request: SearchRequest):
     start_time = time.time()
     print('\033[93mRETRIEVE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('RETRIEVE: Question is: ' + request.question)
     sources = ",".join([f"./{src}/" for src in request.sources])
     print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
-    # analysis_graph.folders = sources.split(',')
+    graph.folders = sources.split(',')
     result = graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
@@ -111,7 +114,7 @@ def search(request: SearchRequest):
     return {"resources": resources}
 
 @app.post("/analyze")
-def search(request: SearchRequest):
+async def analyze(request: SearchRequest):
     start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('ANALYZE: Question is: ' + request.question)
@@ -119,8 +122,64 @@ def search(request: SearchRequest):
     sources = ",".join([f"./{src}/" for src in request.sources])
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
-    # analysis_graph.folders = sources.split(',')
+    graph.folders = sources.split(',')
     graph.prompt = get_analyze_prompt(answer_size)
-    result = graph.invoke(request.question)  # pyright: ignore[reportArgumentType]
+    result = await graph.ainvoke(request.question) 
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
+
+@app.post("/stream-analyze")
+async def stream_analyze(request: SearchRequest):
+    start_time = time.time()
+    print('\033[93mSTREAM-ANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
+    print('STREAM-ANALYZE: Question is: ' + request.question)
+    print('STREAM-ANALYZE: Sources are: ' + ", ".join(request.sources))
+    sources = ",".join([f"./{src}/" for src in request.sources])
+    answer_size = 160 + (int(request.answerSize) - 1) * 150
+    print(f'STREAM-ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
+    graph.folders = sources.split(',')
+    graph.prompt = get_analyze_prompt(answer_size)
+    async def event_generator():
+        try:
+            async for event in graph.astream_events(request.question):
+                kind = event["event"]
+                if kind == "on_chain_start":
+                    if event["data"].get('input') and event['data']['input'].get('context'):
+                        print('SENDING RESOURCES')
+                        resources: list[Resource] = []
+                        for doc in event["data"]["input"]['context']:
+                            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+                        yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
+                    else:
+                        print("ERROR input not found")
+                        yield ""
+                if kind == "on_chat_model_stream":
+                    content = event["data"]["chunk"].content
+                    if content:
+                        yield f"data: {json.dumps({ "type": "token", "data": content })}\n\n"
+                if kind == "on_chain_end":
+                    if event['data'].get('output') and event['data']['output'].get('cost'):
+                        yield f"data: {json.dumps({ "type": "cost", "cost": event['data']['output']['cost'] })}\n\n"
+            yield f"data: {json.dumps({"type": "done"})}\n\n"
+        finally:
+            print(f'\033[93mSTREAM-ANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
+            pass
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+    #     yield "data: [DONE]\n\n"
+    # async def event_generator():
+    #     async for ev in graph.astream_with_tokens(request.question):
+    #         if ev.get("done"):
+    #             yield f"data: {json.dumps({'full': ev['full_answer'], 'otherData': ev['other_data']})}\n\n"
+    #             yield "data: [DONE]\n\n"
+    #         elif ev.get("delta"):
+    #             yield f"data: {ev['delta']}\n\n"
+
+    # return StreamingResponse(
+    #     event_generator(),
+    #     media_type="text/event-stream",
+    #     headers={
+    #         "Cache-Control": "no-cache",
+    #         "X-Accel-Buffering": "no"   # important for nginx reverse proxy
+    #     }
+    # )

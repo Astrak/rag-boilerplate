@@ -17,11 +17,11 @@ It is designed to run on a lightweight server (EC2 t3micro), so the indices are 
 
 ## Install
 
-Run with python:
+Run with python `3.12`:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3.12 -m venv venv
+source venv/bin/activate
 pip install -m requirements.txt
 pip install -e .
 ```
@@ -41,7 +41,7 @@ The environment requires the following keys:
 #### Telegram:
 
 ```bash
-FOLDERS='./my-folder1/,./my-folder-2/' nohup python3 app.telegram.main &
+FOLDERS='./my-folder1/,./my-folder-2/' nohup python app.telegram.main &
 ```
 
 It should run at `@GweltazBot`.
@@ -52,17 +52,17 @@ It should run at `@GweltazBot`.
 FOLDERS='./my-folder1/,./my-folder-2/' uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-Verify launch with `curl http://16.171.231.107:8000`: it should answer with `"hello world"`
+Verify launch with `curl http://localhost:8000`: it should answer with `"hello world"`
 
 To query the API there are two endpoints:
 
-- `/search` offers an overview for keyword searches as in Google Overview, limited to 120 words:
+- `/retrieve` offers a list of matching sources as in a Google Search:
 
 ```bash
 curl -X POST \
 -H "Content-Type: application/json" \
 -d '{"question": "Soros"}' \
-http://16.171.231.107:8000/search
+http://localhost:8000/search
 ```
 
 - `/analyze` offers an in-depth analysis on a given keyword or question:
@@ -71,13 +71,8 @@ http://16.171.231.107:8000/search
 curl -X POST \
 -H "Content-Type: application/json" \
 -d '{"question": "Je veux un résumé sur la situation des sans-papiers en 2021"}' \
-http://16.171.231.107:8000/analyze
+http://localhost:8000/analyze
 ```
-
-## Debug
-
-Clear the following:
-`pip install -m requirements.txt`
 
 ## Building the knowledge base
 
@@ -93,20 +88,20 @@ The user must separately:
 
 ### Discover data
 
-The knowledge is stored in an untracked folder `./knowledge-sources/` at the source of the repo. Every online source knowledge must be identified by its public domain: `my-website.com`.
+The knowledge is stored in an untracked folder `./knowledge-sources/` at the source of the repo. Every online source knowledge must be identified as folder named by its public domain: `my-website.com`.
 
 #### Scrape website URLs for a given website
 
 To update all `url-list.csv` of all knowledge sources, just do:
 
 ```bash
-python3 -m scraper.discover_urls.main
+python -m scraper.discover_urls.main
 ```
 
-To scrawl for specific sources: target specific sources, `SOURCES="my-website.com,website2.com"` for instance (comma separated). Indexes are created or updated for each source in a file at `<source>/url-list.csv`. A blacklist can be added of specific URLs not to record at `<source>/blacklist.csv`, and URLs or patterns that must not be explored in `<source>/ignore.csv` (like `/tag/`). It may be long to build the initial URL list but updating is optimized.
+To scrawl for specific sources: target specific sources, `SOURCES="my-website.com,website2.com"` for instance (comma separated). Indexes are created or updated for each source in a file at `<source>/url-list.csv`. A blacklist can be added of specific URLs that may be visited but not to record, at `<source>/blacklist.csv`, and URLs or patterns that must not be explored are to be listed in `<source>/ignore.csv` (like `/tag/`). It may be long to build the initial URL list but updating is optimized.
 
 ```bash
-SOURCES='my-website.com' python3 -m scraper.discover_urls.main
+SOURCES='my-website.com' python -m scraper.discover_urls.main
 ```
 
 Then double check `my-website.com/url-list.csv`, and make sure to review the following:
@@ -123,33 +118,34 @@ Files can be read locally too, only PDFs for now. If a PDF is online, starting w
 
 ### Record documents
 
-Use the `ArticleDiscoverer` and wait for it to complete.
-
-The result is a file `scraped-articles.pkl.gz` in the relative path assigned in `FOLDER`.
-
-Before starting, make sure a `selectors` file is created in the source(s) target(s). It should look like this:
+Before starting, make sure `selectors` files are created in the sources' folders. It should look like this:
 
 ```
 title=h1#my-title
 author=div.author-field
 date=
 article=div#content > article
+comment=whatever you need to remind yourself there
 ```
 
-Turn on and off `LOG_ARTICLES` to log what the saved articles actually look like.
+You'll also need dev credentials from Adobe to handle scraping PDFs.
+
+```bash
+ADOBE_CLIENT_ID='XXX' ADOBE_CLIET_SECRET='XXX' SOURCES='source-1,source2.com' LOG_ARTICLES='true' python -m scraper.download_articles.main
+```
+
+The result will be a file `<source-folder>/scraped-articles.pkl.gz`.
 
 If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
 
-```bash
-ADOBE_CLIENT_ID='XXX' ADOBE_CLIET_SECRET='XXX' SOURCES='source-1,source2.com' LOG_ARTICLES='true' python3 -m scraper.download_articles.main
-```
+Turn on and off `LOG_ARTICLES` to check if your selectors are working as expected.
 
 ### Vectorize
 
-Use the `Vectorizer` and wait for it to complete. It takes a few minutes. Make sure the `SOURCES` in the `main.py` file is what you expect.
-
-If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
+Make sure you have some budget and launch vectorization:
 
 ```bash
-SOURCES='website1.com,source2' python3 -m scraper.vectorizer.main
+SOURCES='website1.com,source2' python -m scraper.vectorizer.main
 ```
+
+If you don't provide a `SOURCES` argument, it will loop on all folders in `./knowledge-sources/`.
