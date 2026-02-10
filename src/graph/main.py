@@ -155,7 +155,7 @@ class Graph:
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])
         half_index = len(all_results) // 2
-        first_half = all_results[:12] # [:half_index] # Remove the less relevant half relative to the given results (relative filter)
+        first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.2] # Remove elements with a dissimilarity superior to 1.2 (absolute filter)
         context = [item[1] for item in relevancy_culled_list] 
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
