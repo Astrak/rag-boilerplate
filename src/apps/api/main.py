@@ -72,7 +72,8 @@ allowed_origins = [
     "https://lovable.app",
     "https://lovable.dev",
     "https://locableproject.com",
-    "https://iapolemia.lovable.app"
+    "https://iapolemia.lovable.app",
+    "https://iapolemia2.lovable.app"
 ]
 
 app = FastAPI()
