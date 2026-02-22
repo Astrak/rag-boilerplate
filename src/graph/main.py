@@ -34,6 +34,8 @@ class State(TypedDict):
     resources: List[Resource]
     cost: float
 
+CONTEXT_CULL = 16
+
 class Graph:
     def __init__(self, prompt: PromptTemplate, folders: List[str]):
         self.prompt = prompt
@@ -74,7 +76,7 @@ class Graph:
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        str_context = "\n\n".join(context)
+        str_context = "\n\n".join(context[:CONTEXT_CULL]) # Cull input to a maximum amount of context elements 
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
         response = await self.llm.ainvoke(messages)

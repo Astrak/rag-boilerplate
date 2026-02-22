@@ -71,7 +71,7 @@ allowed_origins = [
     "https://ia.polemia.com",
     "https://lovable.app",
     "https://lovable.dev",
-    "https://locableproject.com",
+    "https://lovableproject.com",
     "https://iapolemia.lovable.app",
     "https://iapolemia2.lovable.app"
 ]
