@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 IP_THROTTLER = {}
 MIN_WAITING_TIME = timedelta(seconds=3)
-MAX_REQ_PER_MIN = 3
+MAX_REQ_PER_MIN = 2
 MAX_REQ_PER_DAY = 10
 
 class IPThrottleMiddleware:

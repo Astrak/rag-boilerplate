@@ -115,6 +115,8 @@ class Resource(TypedDict):
     url: str
     title: str
 
+BASIC_CACHE = {}
+
 @app.post("/retrieve")
 def retrieve(request: SearchRequest):
     start_time = time.time()
@@ -140,10 +142,16 @@ async def analyze(request: SearchRequest):
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
+    cache_string = f"{request.question}&{AnswerSize(request.answerSize)}"
+    if cache_string in BASIC_CACHE:
+        print(f'\033[93mANALYZE: Answered from cache')
+        return BASIC_CACHE[cache_string]
     graph.prompt = get_analyze_prompt(answer_size)
     result = await graph.ainvoke(request.question) 
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
-    return {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
+    answer = {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
+    BASIC_CACHE[cache_string] = answer
+    return answer
 
 @app.post("/stream-analyze")
 async def stream_analyze(request: SearchRequest):
@@ -155,15 +163,27 @@ async def stream_analyze(request: SearchRequest):
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'STREAM-ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
     graph.folders = sources.split(',')
+    cache_string = f"{request.question}&{AnswerSize(request.answerSize)}"
     graph.prompt = get_analyze_prompt(answer_size)
     async def event_generator():
-        try:
+
+        if cache_string in BASIC_CACHE:
+            yield f"data: {json.dumps({ "type": "resources", "resources": BASIC_CACHE[cache_string]['resources']  })}\n\n"
+            yield f"data: {json.dumps({ "type": "token", "data": BASIC_CACHE[cache_string]['results'] })}\n\n"
+            yield f"data: {json.dumps({ "type": "cost", "cost": BASIC_CACHE[cache_string]['cost'] })}\n\n"
+            yield f"data: {json.dumps({ "type": "done" })}\n\n"
+            print(f'\033[93mSTREAM-ANALYZE: Answered from cache')
+            return  
+          
+        text = ""
+        resources: list[Resource] = []
+        cost = ""
+        try:            
             async for event in graph.astream_events(request.question):
                 kind = event["event"]
                 if kind == "on_chain_start":
                     if event["data"].get('input') and event['data']['input'].get('context'):
                         print('SENDING RESOURCES')
-                        resources: list[Resource] = []
                         for doc in event["data"]["input"]['context']:
                             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
                         yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
@@ -172,13 +192,17 @@ async def stream_analyze(request: SearchRequest):
                         yield ""
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
+                    text += content
                     if content:
                         yield f"data: {json.dumps({ "type": "token", "data": content })}\n\n"
                 if kind == "on_chain_end":
                     if event['data'].get('output') and event['data']['output'].get('cost'):
+                        cost = event['data']['output']['cost']
                         yield f"data: {json.dumps({ "type": "cost", "cost": event['data']['output']['cost'] })}\n\n"
             yield f"data: {json.dumps({"type": "done"})}\n\n"
         finally:
+            answer = {"results": text, "resources": resources, "cost": cost }
+            BASIC_CACHE[cache_string] = answer
             print(f'\033[93mSTREAM-ANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
             pass
     return StreamingResponse(event_generator(), media_type="text/event-stream")
