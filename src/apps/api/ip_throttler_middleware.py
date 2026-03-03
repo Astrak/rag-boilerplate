@@ -27,8 +27,8 @@ class IPThrottleMiddleware:
         if ip in IP_THROTTLER:
             last_request = IP_THROTTLER[ip][-1]
             delay = now - last_request
-            requests_in_last_minute = len([date for date in IP_THROTTLER[ip] if (now - date) < timedelta(minute=1)])
-            requests_in_last_day = len([date for date in IP_THROTTLER[ip] if (now - date) < timedelta(day=1)])
+            requests_in_last_minute = len([date for date in IP_THROTTLER[ip] if (now - date) < timedelta(minutes=1)])
+            requests_in_last_day = len([date for date in IP_THROTTLER[ip] if (now - date) < timedelta(days=1)])
             if delay < MIN_WAITING_TIME:
                 print(f"\033[91mTHROTTLED {ip} — {str(delay)} elapsed since last request\033[0m")
                 response = JSONResponse(
