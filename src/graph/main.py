@@ -34,7 +34,7 @@ class State(TypedDict):
     resources: List[Resource]
     cost: float
 
-CONTEXT_CULL = 16
+CONTEXT_CULL = 10
 
 class Graph:
     def __init__(self, prompt: PromptTemplate, folders: List[str]):
