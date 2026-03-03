@@ -37,22 +37,23 @@ class IPThrottleMiddleware:
                 )
                 await response(scope, receive, send)
                 return
-            elif requests_in_last_minute > MAX_REQ_PER_MIN:
-                print(f"\033[91mTHROTTLED {ip} — {requests_in_last_minute} requests in last minute\033[0m")
-                response = JSONResponse(
-                    status_code=429,
-                    content={"error": "Max requests per minute reached"}
-                )
-                await response(scope, receive, send)
-                return
-            elif requests_in_last_day > MAX_REQ_PER_DAY:
-                print(f"\033[91mTHROTTLED {ip} — {requests_in_last_day} requests in last day\033[0m")
-                response = JSONResponse(
-                    status_code=429,
-                    content={"error": "Max requests per day reached"}
-                )
-                await response(scope, receive, send)
-                return
+            if not request.url.path.startswith('/retrieve'):
+                if requests_in_last_minute > MAX_REQ_PER_MIN:
+                    print(f"\033[91mTHROTTLED {ip} — {requests_in_last_minute} requests in last minute\033[0m")
+                    response = JSONResponse(
+                        status_code=429,
+                        content={"error": "Max requests per minute reached"}
+                    )
+                    await response(scope, receive, send)
+                    return
+                if requests_in_last_day > MAX_REQ_PER_DAY:
+                    print(f"\033[91mTHROTTLED {ip} — {requests_in_last_day} requests in last day\033[0m")
+                    response = JSONResponse(
+                        status_code=429,
+                        content={"error": "Max requests per day reached"}
+                    )
+                    await response(scope, receive, send)
+                    return
             IP_THROTTLER[ip].append(now)
         else:
             IP_THROTTLER[ip] = [now]
