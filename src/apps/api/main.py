@@ -30,28 +30,28 @@ if not bucket_region:
 os.environ['BUCKET_REGION'] = bucket_region
 print("Bucket region: ", bucket_region)
 
-# try:
-#     sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
-#     if sync:
-#         s3 = boto3.resource("s3", region_name=bucket_region)
-#         bucket = s3.Bucket(bucket_name)
-#         files = []
-#         for obj in bucket.objects.all():
-#             file = obj.key
-#             files.append(file)
-#         print(f"Files to download from bucket: {files}")
-#         for file in files:
-#             if file.endswith('/') or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
-#                 print(f"Skipping {file}")
-#                 continue
-#             print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
-#             os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
-#             bucket.download_file(
-#                 Filename=f"knowledge-sources/{file}", 
-#                 Key=file
-#             )
-# except Exception as e:
-#    raise ValueError('Didnt understand what to do with knowledge sources', e)
+try:
+    sync = input("Sync knowledge-sources from bucket? (y/n): ").lower().startswith('y')
+    if sync:
+        s3 = boto3.resource("s3", region_name=bucket_region)
+        bucket = s3.Bucket(bucket_name)
+        files = []
+        for obj in bucket.objects.all():
+            file = obj.key
+            files.append(file)
+        print(f"Files to download from bucket: {files}")
+        for file in files:
+            if file.endswith('/') or any(sub in file for sub in [".pdf", "scraped_articles.pkl.gz"]):
+                print(f"Skipping {file}")
+                continue
+            print(f"Downloading {file} into {os.getcwd()}/knowledge-sources/{file}...")
+            os.makedirs(os.path.dirname(f"{os.getcwd()}/knowledge-sources/{file}"), exist_ok=True)
+            bucket.download_file(
+                Filename=f"knowledge-sources/{file}", 
+                Key=file
+            )
+except Exception as e:
+   raise ValueError('Didnt understand what to do with knowledge sources', e)
 
 sources = os.getenv("SOURCES")
 if not sources:
