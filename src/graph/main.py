@@ -163,8 +163,9 @@ class Graph:
         half_index = len(all_results) // 2
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.2] # Remove elements with a dissimilarity superior to 1.2 (absolute filter)
+        relevancy_culled_list.extend([(score, quote) for score, quote in quotes if score < 1.2]) # Same with quotes
+        relevancy_culled_list.sort(key=lambda x: x[0]) # Re-sort with quotes because input sent to the LLM has a further cull and quotes must not be at the bottom.
         context = [item[1] for item in relevancy_culled_list]
-        context.extend([quote for score, quote in quotes if score < 1.2]) # Same with quotes
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
         return context
     
