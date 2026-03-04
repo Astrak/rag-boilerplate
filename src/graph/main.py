@@ -130,6 +130,7 @@ class Graph:
         all_results: list[Document] = []
         start_time = time.perf_counter()
         results_per_chunk = 4
+        quotes: list[Document] = []
         if not self.preloaded_indices:
             for folder in self.folders:
                 folder_start_time = time.perf_counter()
@@ -152,14 +153,18 @@ class Graph:
                 scores, indices = self.preloaded_indices[file].search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
                     if idx < len(self.preloaded_docs[file]):
-                        all_results.append((score, self.preloaded_docs[file][idx]))
+                        if "citations.institut-iliade.com" in file:
+                            quotes.append((score, self.preloaded_docs[file][idx]))
+                        else:
+                            all_results.append((score, self.preloaded_docs[file][idx]))
         all_results.sort(key=lambda x: x[0]) # Sorts tuples list by similarity score
         # for result in all_results:
         #     print(result[0], result[1].metadata['source'])
         half_index = len(all_results) // 2
         first_half = all_results[:half_index] # Remove the less relevant half relative to the given results (relative filter)
         relevancy_culled_list = [tup for tup in first_half if tup[0] < 1.2] # Remove elements with a dissimilarity superior to 1.2 (absolute filter)
-        context = [item[1] for item in relevancy_culled_list] 
+        context = [item[1] for item in relevancy_culled_list]
+        context.extend([quote for score, quote in quotes if score < 1.2]) # Same with quotes
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
         return context
     
