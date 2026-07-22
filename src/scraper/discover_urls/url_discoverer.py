@@ -133,14 +133,14 @@ class UrlDiscoverer:
                         continue
                 visited.add(current_url)
                 soup = BeautifulSoup(response.content, 'html.parser')
-                links = {cast(str, href.get('href')) for href in soup.select("a[href]")}
+                links = {cast(str, href.get('href')) for href in soup.select("a[href]")} | {cast(str, src.get('src')) for src in soup.select("frame[src], iframe[src]")}
                 if "#" in links:
                     links.remove("#")
                 new_article_found = False
                 for href in links:
                     if any(sub in href for sub in ["mailto:", "javascript:", "tel:"]):
                         continue
-                    href = self._ensure_url_is_absolute(href)
+                    href = self._ensure_url_is_absolute(href, current_url)
                     href = href.split('#')[0]
                     if all(sub not in href for sub in ["id=","page="]):
                         href = href.split('?')[0]
@@ -219,10 +219,17 @@ class UrlDiscoverer:
             for failed in to_revisit:
                 print(failed)
         
-    def _ensure_url_is_absolute(self, url: str) -> str:
+    def _ensure_url_is_absolute(self, url: str, current_url: str) -> str:
         is_absolute = bool(urlparse(url).netloc)
         if not is_absolute:
-            url = urljoin(self.base_url, url)
+            print('NOT ABSOLUTE', url, current_url)
+            if not url.startswith('/') and (current_url.endswith('.html') or current_url.endswith('.htm')):
+                path = current_url.split('/')
+                path.pop()
+                url = "/".join(path) + "/" + url
+                print('JOINED: ', url)
+            else:
+                url = urljoin(self.base_url, url)
         return url
         
     def _is_same_domain(self, url: str) -> bool:
