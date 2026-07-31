@@ -98,6 +98,28 @@ sudo docker compose up -d --remove-orphans
 build` is the step that picks up new code. See
 [`deploy/README.md`](deploy/README.md#deploying-a-code-update) for details.
 
+### Consulting logs
+
+Now that the API runs under Docker instead of `nohup`, there's no `nohup.out`
+to tail. `docker-compose.yml` runs [Dozzle](https://dozzle.dev/), a small web
+UI for browsing/searching/tailing container logs, alongside `api` and
+`caddy`. It's bound to `127.0.0.1:8080` on the instance only — not routed
+through Caddy or reachable from the internet, so there's no public exposure
+or password to manage.
+
+To use it from a laptop:
+
+```bash
+ssh -L 8080:localhost:8080 <user>@<host>
+```
+
+then open `http://localhost:8080` in a browser — that's the full Dozzle UI
+(search, filter, live tail across `api`/`caddy`) tunneled over SSH.
+
+Both `api` and `caddy` also have `logging.options.max-size`/`max-file` set in
+`docker-compose.yml` (20MB × 5 files each), so log storage is capped instead
+of growing unbounded — Dozzle still shows the retained history.
+
 ## Building the knowledge base
 
 The scraper is not entirely automatized so one can vet if the data is correctly picked from the targeted website.

@@ -13,6 +13,11 @@ services:
       timeout: 3s
       start_period: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   caddy:
     image: caddy:2-alpine
@@ -24,4 +29,17 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  dozzle:
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:8080:8080"
     restart: unless-stopped
