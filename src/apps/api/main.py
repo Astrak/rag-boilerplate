@@ -188,9 +188,6 @@ async def stream_analyze(request: SearchRequest) -> StreamingResponse:
                         for doc in event["data"]["input"]['context']:
                             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
                         yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
-                    else:
-                        print("ERROR input not found")
-                        yield ""
                 if kind == "on_chat_model_stream":
                     content = event["data"]["chunk"].content
                     text += content
