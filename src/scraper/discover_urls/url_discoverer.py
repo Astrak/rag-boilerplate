@@ -1,15 +1,16 @@
-from urllib.parse import urlparse, urljoin, quote
-import requests
-from bs4 import BeautifulSoup, Tag
-from typing import cast
-import time
-import re
 import csv
-import sys
-import boto3
 import os
-from datetime import datetime, timedelta
+import re
+import sys
+import time
 from collections import Counter
+from datetime import datetime, timedelta
+from typing import cast
+from urllib.parse import quote, urljoin, urlparse
+
+import boto3
+import requests
+from bs4 import BeautifulSoup
 
 DELAY = 0.05 # delay to not Ddos the server
 IGNORE = {'.png', '.jpg', '.jpeg', '.xlsx', "/wp-login", "wp-admin", ".xml", ".docx", ".mp4", '.wma', '.mp3', '.doc', '.webp', ".gif"}
@@ -35,7 +36,7 @@ class UrlDiscoverer:
                 Key=f"{self.folder}/url-list.csv"
             )
             print("\033[KSynced")
-        except Exception as e:
+        except Exception:
             print("\033[KFailed to upload url-list.csv to AWS bucket")
         try:
             print("\033[KUploading blacklist.csv to AWS backup...")
@@ -45,7 +46,7 @@ class UrlDiscoverer:
                 Key=f"{self.folder}/blacklist.csv"
             )
             print("\033[KSynced")
-        except Exception as e:
+        except Exception:
             print("\033[KFailed to upload blacklist.csv to AWS bucket")
         try:
             print("\033[KUploading ignore.csv to AWS backup...")
@@ -55,18 +56,18 @@ class UrlDiscoverer:
                 Key=f"{self.folder}/ignore.csv"
             )
             print("\033[KSynced")
-        except Exception as e:
+        except Exception:
             print("\033[KFailed to upload ignore.csv to AWS bucket")
 
     def discover_urls(self):
-        if not "." in self.folder:
+        if "." not in self.folder:
             print(f"{self.folder} is not a website, no URL will be explored, skipping.")
             return 
         print("Discovering URLs for \033[93m" + self.folder + "\033[0m")
         full_path = f"./knowledge-sources/{self.folder}"
         retained_urls = []
         to_visit = []
-        to_revisit = set()
+        to_revisit: set[str] = set()
         visited = set()
         visited_in_session = []
         ignored = IGNORE
@@ -84,11 +85,11 @@ class UrlDiscoverer:
                 try:
                     response = self.session.get(f"{protocol}://{self.folder}", timeout=10)
                     self.base_url = response.url
-                except Exception as ee:
+                except Exception:
                     raise TypeError("No protocol allowed connecting to this website")
         to_visit.append(self.base_url)
         if os.path.exists(f'{full_path}/url-list.csv'):
-            with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
+            with open(f'{full_path}/url-list.csv', encoding='utf-8') as file:
                 csv_reader = csv.reader(file)
                 for row in csv_reader:
                     visited.add(row[0])
@@ -101,13 +102,13 @@ class UrlDiscoverer:
                 was_known = len(visited)
                 print(f"{len(visited)} pages already listed")
         if os.path.exists(f'{full_path}/blacklist.csv'):
-            with open(f'{full_path}/blacklist.csv', 'r', encoding='utf-8') as file:
+            with open(f'{full_path}/blacklist.csv', encoding='utf-8') as file:
                 csv_reader = csv.reader(file)
                 for row in csv_reader:
                     blacklisted.add(row[0])
                 print(f"{len(blacklisted)} blacklisted URLs")
         if os.path.exists(f'{full_path}/ignore.csv'):
-            with open(f'{full_path}/ignore.csv', 'r', encoding='utf-8') as file:
+            with open(f'{full_path}/ignore.csv', encoding='utf-8') as file:
                 csv_reader = csv.reader(file)
                 counter = 0
                 for row in csv_reader:
@@ -116,7 +117,7 @@ class UrlDiscoverer:
             print(f"{counter} custom ignored keywords")                
         print("\n\n\n\n\n\n")
         while to_visit:
-            current_url = cast(str, to_visit.pop())
+            current_url = to_visit.pop()
             original_url = current_url
             if current_url in visited:
                 continue
@@ -157,26 +158,28 @@ class UrlDiscoverer:
                         if href not in retained_urls and not dont_record_but_visit:
                             retained_urls.append(href)
                             new_article_found = True
-                if "/page/" in current_url and not new_article_found:
+                page_number_match = re.search(r'/page/(\d+)(?:/|$)', current_url) if "/page/" in current_url else None
+                if page_number_match and not new_article_found:
                     prefix = current_url.split("/page/")[0] + "/page/"
                     pattern = re.compile(re.escape(prefix) + r'(\d+)(?:/|$)')
                     to_visit.sort(
                         reverse=True,
                         key=lambda s: int(m.group(1)) if (m := pattern.match(s)) else float('inf')
                     )
-                    page_number = int(re.search(r'/page/(\d+)(?:/|$)', current_url).group(1))
+                    page_number = int(page_number_match.group(1))
                     i = 0
                     while i < len(to_visit):
                         item = to_visit[i]
                         if "/page/" in item and item.startswith(prefix):
-                            page = int(re.search(r'/page/(\d+)(?:/|$)', item).group(1))
-                            if page < page_number: 
+                            item_page_match = re.search(r'/page/(\d+)(?:/|$)', item)
+                            page = int(item_page_match.group(1)) if item_page_match else 0
+                            if page < page_number:
                                 i += 1
                             else:
                                 del to_visit[i]
                         else:
                             i += 1
-                sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F")
+                sys.stdout.write("\033[F\033[F\033[F\033[F\033[F\033[F")
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
                 sys.stdout.write(f"\r\033[KVisited: {len(visited) - was_known}\n") 
                 sys.stdout.write(f"\r\033[KRemaining: {len(to_visit)}\n") 
@@ -186,7 +189,7 @@ class UrlDiscoverer:
                 sys.stdout.flush()
                 time.sleep(DELAY) 
             except Exception as e:
-                sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
+                sys.stdout.write("\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
                 url = current_url if original_url == current_url else f"{original_url} (routed)"
                 sys.stdout.write(f"\r\033[K\033[93mError: {url} : {e}\033[0m\n\033[K\n") 
                 sys.stdout.write(f"\r\033[KVisiting: {current_url}\n") 
@@ -199,7 +202,7 @@ class UrlDiscoverer:
                 to_revisit.add(current_url)
                 retained_urls[:] = [url for url in retained_urls if not current_url == url]
         retained_urls[:] = retained_urls[was_known:]
-        sys.stdout.write(f"\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
+        sys.stdout.write("\033[F\033[F\033[F\033[F\033[F\033[F\033[F")
         sys.stdout.write(f"\r\033[KVisited: {len(visited) - was_known}\n") 
         sys.stdout.write(f"\r\033[K\033[92mRecorded: {len(retained_urls)}\033[0m\n") 
         sys.stdout.write(f"\r\033[K\033[91mFailed: {len(to_revisit)}\033[0m\n") 

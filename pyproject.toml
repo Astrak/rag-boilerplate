@@ -7,8 +7,40 @@ name = "rag-boilerplate"
 version = "0.1.0"
 description = "My multi-app RAG boilerplate"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
+# requirements.txt is the single source of truth for dependencies (see CLAUDE.md setup steps);
+# this list is intentionally left empty rather than duplicating pins that could drift out of sync.
 dependencies = []
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+explicit_package_bases = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+# A handful of modules import their siblings with a "src." prefix instead of the
+# project's usual unprefixed style (see CLAUDE.md) - since mypy_path already exposes
+# "src" as a package root, following those imports makes mypy see the same file
+# under two different module names. Skip following them rather than "fixing" the
+# import style, which CLAUDE.md explicitly says to preserve.
+[[tool.mypy.overrides]]
+module = "src.*"
+follow_imports = "skip"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+# Scraper prompt/selector strings and French copy routinely exceed any reasonable
+# line-length limit; enforcing E501 would just generate noise, not real fixes.
+extend-exclude = ["knowledge-sources"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]

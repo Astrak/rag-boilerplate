@@ -1,21 +1,22 @@
-from scraper.discover_urls.url_discoverer import UrlDiscoverer
 import os
 
-sources = os.getenv("SOURCES")
-if not sources:
+from scraper.discover_urls.url_discoverer import UrlDiscoverer
+
+sources_env = os.getenv("SOURCES")
+if not sources_env:
     print("No SOURCES variable specified, updating all sources in the knowledge-sources folder:")
-    sources = os.listdir("./knowledge-sources/")
+    sources: list[str] = os.listdir("./knowledge-sources/")
 else:
-    sources = sources.split(',')
+    sources = sources_env.split(',')
 print("Scrape sources: ", sources)
 
-def main():
+def main() -> None:
     # TODO: sync from AWS?
     for source in sources:
         try:
             discoverer = UrlDiscoverer(source)
             discoverer.discover_urls()
-        except Exception as e:
+        except Exception:
             print(f'\033[91mFailed to discover URLs from {source}\033[0m')
 
 if __name__ == "__main__":

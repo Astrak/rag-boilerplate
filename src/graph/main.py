@@ -1,16 +1,19 @@
-from langchain_xai import ChatXAI
-from langgraph.graph import StateGraph, START
-from typing_extensions import TypedDict, List
-from typing import Any, AsyncGenerator, Dict
+import os
+import pickle
+import time
+from collections.abc import AsyncIterator
+from typing import Any, NotRequired, cast
+
+import faiss
+import numpy as np
+import openai
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
-from langchain.chat_models import init_chat_model
-import time
-import openai
-import os
-import faiss
-import pickle
-import numpy as np 
+from langchain_core.runnables.schema import StreamEvent
+from langchain_xai import ChatXAI
+from langgraph.graph import START, StateGraph
+from typing_extensions import TypedDict
+
 
 def gemini_tokens_approx(text: str) -> int:
     return len(text) // 4 + 1 
@@ -28,28 +31,28 @@ class Resource(TypedDict):
 
 class State(TypedDict):
     question: str
-    discussion: str = ""
-    context: List[Document]
-    answer: str
-    resources: List[Resource]
-    cost: float
+    discussion: NotRequired[str]
+    context: NotRequired[list[Document]]
+    answer: NotRequired[str]
+    resources: NotRequired[list[Resource]]
+    cost: NotRequired[float]
 
 CONTEXT_CULL = 10
 
 class Graph:
-    def __init__(self, prompt: PromptTemplate, folders: List[str]):
+    def __init__(self, prompt: PromptTemplate, folders: list[str]) -> None:
         self.prompt = prompt
         self.folders = folders
-        self.preloaded_indices = {}
-        self.preloaded_docs = {}
+        self.preloaded_indices: dict[str, Any] = {}
+        self.preloaded_docs: dict[str, list[Document]] = {}
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
         self.llm = ChatXAI(
             model="grok-3"
         )
-    
-    def preload_indices(self):
+
+    def preload_indices(self) -> None:
         print('Pre-loading indices')
         for folder in self.folders:
             embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
@@ -61,7 +64,7 @@ class Graph:
                     with open(file.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as ff:
                         self.preloaded_docs[file] = pickle.load(ff)
 
-    def retrieve(self, state: State):
+    def retrieve(self, state: State) -> dict[str, list[Document]]:
         print(f'\033[94mGRAPH: Retrieve: Received question: {state["question"]}')
         MODEL = "text-embedding-3-large"
         response = openai.embeddings.create(input=state["question"],model=MODEL)
@@ -70,23 +73,23 @@ class Graph:
         matching_documents = self.search_embeddings(question_embeddings)
         return {"context": matching_documents}
 
-    async def generate(self, state: State):
+    async def generate(self, state: State) -> dict[str, Any]:
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        str_context = "\n\n".join(context[:CONTEXT_CULL]) # Cull input to a maximum amount of context elements 
+        str_context = "\n\n".join(context[:CONTEXT_CULL]) # Cull input to a maximum amount of context elements
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
         response = await self.llm.ainvoke(messages)
         input_text = messages.to_string()
         print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
-        output_text = response.content
+        output_text = cast(str, response.content)
         print(f"\033[94mGRAPH: Output text from LLM is {len(output_text)} characters long")
         cost_estimation = gemini_cost_approx(input_text, output_text)
         delay = time.time() - start_time
-        print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
+        print(f"\033[94mGRAPH: LLM answered in {delay}sec:")
         print(f"\033[94mGRAPH: Answer :\n{response.content}")
         return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
     
@@ -126,11 +129,11 @@ class Graph:
     #             async for delta in update["generate"]:
     #                 yield delta
 
-    def search_embeddings(self, query_embedding):
-        all_results: list[Document] = []
+    def search_embeddings(self, query_embedding: list[float]) -> list[Document]:
+        all_results: list[tuple[float, Document]] = []
         start_time = time.perf_counter()
         results_per_chunk = 4
-        quotes: list[Document] = []
+        quotes: list[tuple[float, Document]] = []
         if not self.preloaded_indices:
             for folder in self.folders:
                 folder_start_time = time.perf_counter()
@@ -169,8 +172,8 @@ class Graph:
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
         return context
     
-    async def ainvoke(self, question, discussion = ""):
-        return await self.graph.ainvoke({"question": question, "discussion": discussion}) 
-    
-    def astream_events(self, question, discussion = ""):
-        return self.graph.astream_events({"question": question, "discussion": discussion}) 
+    async def ainvoke(self, question: str, discussion: str = "") -> dict[str, Any]:
+        return await self.graph.ainvoke({"question": question, "discussion": discussion})
+
+    def astream_events(self, question: str, discussion: str = "") -> AsyncIterator[StreamEvent]:
+        return self.graph.astream_events({"question": question, "discussion": discussion})

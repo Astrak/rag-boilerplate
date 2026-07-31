@@ -1,15 +1,17 @@
 import csv
-import boto3
-import os
-import tempfile
-import requests
-from urllib.parse import urlparse
-from bs4 import BeautifulSoup, Tag
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import time
-from typing import cast, Optional, Dict
-import pickle
 import gzip
+import os
+import pickle
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import cast
+from urllib.parse import urlparse
+
+import boto3
+import requests
+from bs4 import BeautifulSoup, Tag
+
 from scraper.download_articles.pdf_extractor import PDFAdobeExtractor
 
 DELAY = 0.05 # delay to not Ddos the server
@@ -48,7 +50,7 @@ class ArticleDownloader:
                 Key=f"{self.folder}/scraped_articles.pkl.gz"
             )
             print("\033[KSynced")
-        except Exception as e:
+        except Exception:
             print("\033[KFailed to upload scraped_articles.pkl.gz to AWS bucket")
         try:
             print("\033[KUploading selectors to AWS backup...")
@@ -58,7 +60,7 @@ class ArticleDownloader:
                 Key=f"{self.folder}/selectors"
             )
             print("\033[KSynced")
-        except Exception as e:
+        except Exception:
             print("\033[KFailed to upload selectors to AWS bucket")
 
     def scrape_articles(self) -> list[dict]:
@@ -67,18 +69,18 @@ class ArticleDownloader:
         self.urls: set[str] = set()
         if "." in self.folder:
             if os.path.exists(f'{full_path}/selectors'):
-                    with open(f'{full_path}/selectors', 'r', encoding='utf-8') as f:
+                    with open(f'{full_path}/selectors', encoding='utf-8') as f:
                         lines = f.read().splitlines()
                         for line in lines:
                             items = line.split('=')
                             self.selectors[items[0]] = "=".join(items[1:])
                         if not self.selectors['article']:
-                            raise EnvironmentError('Missing article selector')
-                        print(f"Selectors are:\n", self.selectors)
+                            raise OSError('Missing article selector')
+                        print("Selectors are:\n", self.selectors)
             else: 
                 FileNotFoundError(f'No {full_path}/selectors found')
         if os.path.exists(f'{full_path}/url-list.csv'):
-            with open(f'{full_path}/url-list.csv', 'r', encoding='utf-8') as file:
+            with open(f'{full_path}/url-list.csv', encoding='utf-8') as file:
                 csv_reader = csv.reader(file)
                 for row in csv_reader:
                     self.urls.add(row[0])
@@ -120,7 +122,7 @@ class ArticleDownloader:
                 print(url)
         return self.articles
     
-    def scrape_article(self, url: str) -> Optional[dict]:
+    def scrape_article(self, url: str) -> dict | None:
         print("Scraping: ", url)
         try:
             response = self.session.get(url, timeout=15)
@@ -168,7 +170,9 @@ class ArticleDownloader:
             meta_description = ""
             meta_tag = soup.find('meta', attrs={'name': 'description'})
             if meta_tag:
-                meta_description = cast(Tag, meta_tag).get('content', '')
+                content_attr = meta_tag.get('content', '')
+                if isinstance(content_attr, str):
+                    meta_description = content_attr
                 
             article_data = {
                 'url': url,
@@ -186,10 +190,10 @@ class ArticleDownloader:
             print(f"Error scraping {url}: {e}")
             return None
         
-    def scrape_pdf(self, url: str) -> Optional[Dict]:
+    def scrape_pdf(self, url: str) -> dict | None:
         if self._adobe_429:
             print('Skipping PDF extraction')
-            return
+            return None
         print('Scrape PDF: ', url)
         try:
             path = ""
@@ -237,8 +241,9 @@ class ArticleDownloader:
                     os.unlink(path)
         except Exception as e:
             print(f"Error scraping PDF {url}: {e}")
+            return None
 
-    def scrape_article_or_pdf(self, url: str) -> Optional[Dict]:
+    def scrape_article_or_pdf(self, url: str) -> dict | None:
         if not url.startswith("https://") and not url.startswith("http://"):
             if url.endswith(".pdf"):
                 return self.scrape_pdf(url)

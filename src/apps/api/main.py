@@ -1,32 +1,33 @@
 import json
-from apps.api.analyze_prompt import get_analyze_prompt
-from apps.api.env import fill_env
-from graph.main import Graph
+import os
+import time
+from collections.abc import AsyncGenerator
+from datetime import datetime
+from enum import StrEnum
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
-from typing import Optional, List
 from typing_extensions import TypedDict
+
+from apps.api.analyze_prompt import get_analyze_prompt
+from apps.api.env import fill_env
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
-from enum import Enum
-from datetime import datetime
-import time
-import os
-import boto3
+from graph.main import Graph
 
 fill_env()
 
 bucket_name = os.getenv("BUCKET")
 if not bucket_name:
-    raise EnvironmentError('No BUCKET variable specified')
+    raise OSError('No BUCKET variable specified')
 os.environ['BUCKET'] = bucket_name
 print("Bucket: ", bucket_name)
 
 bucket_region = os.getenv("BUCKET_REGION")
 if not bucket_region:
-    raise EnvironmentError('No BUCKET_REGION variable specified')
+    raise OSError('No BUCKET_REGION variable specified')
 os.environ['BUCKET_REGION'] = bucket_region
 print("Bucket region: ", bucket_region)
 
@@ -53,12 +54,12 @@ print("Bucket region: ", bucket_region)
 # except Exception as e:
 #    raise ValueError('Didnt understand what to do with knowledge sources', e)
 
-sources = os.getenv("SOURCES")
-if not sources:
+sources_env = os.getenv("SOURCES")
+if not sources_env:
     print("No SOURCES variable specified, using all sources in the knowledge-sources folder:")
-    sources = os.listdir("./knowledge-sources/")
+    sources: list[str] = os.listdir("./knowledge-sources/")
 else:
-    sources = sources.split(',')
+    sources = sources_env.split(',')
 print("Running RAG from sources: ", sources)
 
 analyze_prompt = get_analyze_prompt()
@@ -98,27 +99,27 @@ app.add_middleware(
 app.add_middleware(IPThrottleMiddleware)
 
 @app.get("/")
-def home():
+def home() -> str:
     return "hello world"
 
-class AnswerSize(str, Enum):
-    SMALL = "1" 
+class AnswerSize(StrEnum):
+    SMALL = "1"
     MEDIUM = "2"
     BIG = "3"
 
 class SearchRequest(BaseModel):
     question: str
-    sources: Optional[List[str]] = sources
-    answerSize: Optional[AnswerSize] = AnswerSize.SMALL
+    sources: list[str] = sources
+    answerSize: AnswerSize = AnswerSize.SMALL
 
 class Resource(TypedDict):
     url: str
     title: str
 
-BASIC_CACHE = {}
+BASIC_CACHE: dict[str, dict[str, Any]] = {}
 
 @app.post("/retrieve")
-def retrieve(request: SearchRequest):
+def retrieve(request: SearchRequest) -> dict[str, list[Resource]]:
     start_time = time.time()
     print('\033[93mRETRIEVE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('RETRIEVE: Question is: ' + request.question)
@@ -133,7 +134,7 @@ def retrieve(request: SearchRequest):
     return {"resources": resources}
 
 @app.post("/analyze")
-async def analyze(request: SearchRequest):
+async def analyze(request: SearchRequest) -> dict[str, Any]:
     start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('ANALYZE: Question is: ' + request.question)
@@ -144,7 +145,7 @@ async def analyze(request: SearchRequest):
     graph.folders = sources.split(',')
     cache_string = f"{request.question}&{AnswerSize(request.answerSize)}"
     if cache_string in BASIC_CACHE:
-        print(f'\033[93mANALYZE: Answered from cache')
+        print('\033[93mANALYZE: Answered from cache')
         return BASIC_CACHE[cache_string]
     graph.prompt = get_analyze_prompt(answer_size)
     result = await graph.ainvoke(request.question) 
@@ -154,7 +155,7 @@ async def analyze(request: SearchRequest):
     return answer
 
 @app.post("/stream-analyze")
-async def stream_analyze(request: SearchRequest):
+async def stream_analyze(request: SearchRequest) -> StreamingResponse:
     start_time = time.time()
     print('\033[93mSTREAM-ANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('STREAM-ANALYZE: Question is: ' + request.question)
@@ -165,14 +166,14 @@ async def stream_analyze(request: SearchRequest):
     graph.folders = sources.split(',')
     cache_string = f"{request.question}&{AnswerSize(request.answerSize)}"
     graph.prompt = get_analyze_prompt(answer_size)
-    async def event_generator():
+    async def event_generator() -> AsyncGenerator[str, None]:
 
         if cache_string in BASIC_CACHE:
             yield f"data: {json.dumps({ "type": "resources", "resources": BASIC_CACHE[cache_string]['resources']  })}\n\n"
             yield f"data: {json.dumps({ "type": "token", "data": BASIC_CACHE[cache_string]['results'] })}\n\n"
             yield f"data: {json.dumps({ "type": "cost", "cost": BASIC_CACHE[cache_string]['cost'] })}\n\n"
             yield f"data: {json.dumps({ "type": "done" })}\n\n"
-            print(f'\033[93mSTREAM-ANALYZE: Answered from cache')
+            print('\033[93mSTREAM-ANALYZE: Answered from cache')
             return  
           
         text = ""

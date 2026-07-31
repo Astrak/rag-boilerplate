@@ -19,6 +19,16 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+## Type checking & linting
+
+Config for both lives in `pyproject.toml` (`[tool.mypy]` / `[tool.ruff]`); neither tool is in `requirements.txt` since they're dev-only:
+
+```bash
+pip install mypy ruff
+mypy src
+ruff check src
+```
+
 ## Server Start
 
 The environment requires the following keys:

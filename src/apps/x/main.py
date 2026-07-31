@@ -1,15 +1,18 @@
 import os
-from apps.x.prompt import get_prompt
-from src.apps.x.env import fill_env
-from graph.main import Graph
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from typing import Any, cast
+
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import PromptTemplate
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+
+from apps.x.prompt import get_prompt
+from graph.main import Graph
+from src.apps.x.env import fill_env
 
 folders = os.getenv("FOLDERS")
 if not folders:
-    raise EnvironmentError("FOLDERS not found. Run with FOLDERS=folder1,folder2,folder3 ...")
+    raise OSError("FOLDERS not found. Run with FOLDERS=folder1,folder2,folder3 ...")
 folders_list = [item.strip() for item in folders.split(",")]
 
 print('Using following knowledge folders for RAG: ' + ','.join(folders_list))
@@ -22,13 +25,15 @@ graph = Graph(prompt, folders_list)
 
 llm = init_chat_model("grok-4", model_provider="xai", temperature=0.1)
 
-sessions = {}
+sessions: dict[int, dict[str, Any]] = {}
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"👋 Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia.\n\n📑 Je réalise des courtes notes sur vos questions de société. Chaque question est traitée séparément.\n\n👉 Qu'est-ce qui vous intéresse ?") # type: ignore
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.message is not None and update.effective_user is not None
+    await update.message.reply_text(f"👋 Salutations {update.effective_user.first_name}! Je suis PolemIA, l'IA de Polemia.\n\n📑 Je réalise des courtes notes sur vos questions de société. Chaque question est traitée séparément.\n\n👉 Qu'est-ce qui vous intéresse ?")
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        assert update.message is not None and update.message.from_user is not None and update.message.text is not None
         session_id = update.message.from_user.id
         existing_session = sessions.get(session_id)
         if not existing_session:
@@ -49,14 +54,14 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = ""
             if needs_rag:
                 print('Run rag')
-                answer = graph.invoke(update.message.text)
-                result = answer['answer'].strip()
-                sessions[session_id] = {'context': answer['context'], 'discussion': [update.message.text, result]}
+                rag_result = await graph.ainvoke(update.message.text)
+                result = cast(str, rag_result['answer']).strip()
+                sessions[session_id] = {'context': rag_result['context'], 'discussion': [update.message.text, result]}
             else:
                 print('Run LLM without RAG')
                 answer = llm.invoke("Tu es maintenant PolemIA, une IA créée par Polemia, agissant comme chatbot pour les visiteurs de Polémia (polemia.com et archives.polemia.com), l'Iliade (institut-iliade.com), l'Observatoire de l'Immigration et de la Démographie (OID, observatoire-immigration.fr), l'Observatoire des Décisions de Justice (ODJ, observatoire-justice.fr), Marc Vanguard (marc-vanguard.com) et l'OJIM (ojim.fr), think-tanks français fournissant en essais et rapports les élites françaises. Voici le premier message d'un utilisateur qui te découvre. Réponds-lui, dans la langue de la question, en complétant sa discussion. Sois concis, n'excède pas 50 mots. Voici son message: " + update.message.text)
                 print(answer.content)
-                result = answer.content.strip()
+                result = cast(str, answer.content).strip()
                 sessions[session_id] = {'context': [], 'discussion': [update.message.text, result]}
             await update.message.reply_text(result, parse_mode="HTML", disable_web_page_preview=True)
         else:
@@ -87,15 +92,15 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = ""
             if needs_rag:
                 print('Run rag')
-                answer = graph.invoke(update.message.text)
-                result = answer['answer'].strip()
+                rag_result = await graph.ainvoke(update.message.text)
+                result = cast(str, rag_result['answer']).strip()
                 discussion.extend([update.message.text, result])
-                sessions[session_id] = {'context': answer['context'], 'discussion': discussion }
+                sessions[session_id] = {'context': rag_result['context'], 'discussion': discussion }
             else:
                 print('Run LLM without RAG')
                 question = prompt.invoke({"question": update.message.text, "discussion": "\n\n".join(discussion), "context": "\n\n".join(sessions[session_id]['context'])})
                 answer = llm.invoke(question)
-                result = answer.content.strip()
+                result = cast(str, answer.content).strip()
                 discussion.extend([update.message.text, result])
                 sessions[session_id] = {'context': sessions[session_id]['context'], 'discussion': discussion }
                 print(result)
@@ -103,13 +108,15 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print('Exception: ' + str(e))
 
-def main():
+def main() -> None:
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    app = ApplicationBuilder().token(bot_token).build() # type: ignore
+    if not bot_token:
+        raise OSError("TELEGRAM_BOT_TOKEN not found.")
+    app = ApplicationBuilder().token(bot_token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     print("Bot is starting polling now...")
-    app.run_polling()  # type: ignore
+    app.run_polling()
 
 if __name__ == "__main__":
     main()

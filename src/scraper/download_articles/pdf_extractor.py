@@ -1,14 +1,16 @@
-import requests
-import time
 import os
+import time
+from typing import cast
 
-CLIENT_ID = os.getenv("ADOBE_CLIENT_ID")
+import requests
+
+CLIENT_ID = cast(str, os.getenv("ADOBE_CLIENT_ID"))
 if not CLIENT_ID:
-    raise EnvironmentError("ADOBE_CLIENT_ID not found")
+    raise OSError("ADOBE_CLIENT_ID not found")
 
-CLIENT_SECRET = os.getenv("ADOBE_CLIENT_SECRET")
+CLIENT_SECRET = cast(str, os.getenv("ADOBE_CLIENT_SECRET"))
 if not CLIENT_SECRET:
-    raise EnvironmentError("ADOBE_CLIENT_SECRET not found")
+    raise OSError("ADOBE_CLIENT_SECRET not found")
 
 class PDFAdobeExtractor:
     def __init__(self):
@@ -108,7 +110,10 @@ class PDFAdobeExtractor:
                 timeout=120
             )
             if response.status_code == 201:
-                self._resource_status_url = response.headers.get('Location')
+                location = response.headers.get('Location')
+                if not location:
+                    raise BrokenPipeError("No Location header in extraction operation response")
+                self._resource_status_url = location
             else:
                 raise BrokenPipeError(f"Error {response.status_code} when requesting extraction operation")
         except Exception as e:
@@ -131,7 +136,7 @@ class PDFAdobeExtractor:
                     elif status == "in progress":
                         print("PDF extraction in progress on Adobe's servers...")
                     elif status == "failed":
-                        print(f"Failed extracting PDF")
+                        print("Failed extracting PDF")
                     else:
                         print(f"Unknown anwer from API: {status}")
                 else:
@@ -149,6 +154,6 @@ class PDFAdobeExtractor:
                 full_text = "\n".join([element["Text"] for element in elements if "Text" in element])
                 return full_text
             else:
-                print(f"Error {response.status_code} when reading extracted PDF")
+                raise BrokenPipeError(f"Error {response.status_code} when reading extracted PDF")
         except Exception as e:
             raise BrokenPipeError(f"Error reading PDF: {e}")

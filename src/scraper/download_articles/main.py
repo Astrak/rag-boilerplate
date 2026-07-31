@@ -1,19 +1,20 @@
-from src.scraper.download_articles.article_dowloader import ArticleDownloader
 import os
 
-sources = os.getenv("SOURCES")
-if not sources:
+from src.scraper.download_articles.article_dowloader import ArticleDownloader
+
+sources_env = os.getenv("SOURCES")
+if not sources_env:
     print("No SOURCES variable specified, extracting from all sources in the knowledge-sources folder:")
-    sources = os.listdir("./knowledge-sources/")
+    sources: list[str] = os.listdir("./knowledge-sources/")
 else:
-    sources = sources.split(',')
+    sources = sources_env.split(',')
 print("Download or extract text from sources: ", sources)
 
 log_articles = os.getenv("LOG_ARTICLES")
 if not log_articles:
-    raise EnvironmentError("LOG_ARTICLES not found. Run with LOG_ARTICLES='true' or 'false'")
+    raise OSError("LOG_ARTICLES not found. Run with LOG_ARTICLES='true' or 'false'")
 
-def main():
+def main() -> None:
     for source in sources:
         discoverer = ArticleDownloader(source, log_articles)
         discoverer.scrape_articles()

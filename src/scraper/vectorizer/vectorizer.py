@@ -1,13 +1,14 @@
-from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-import tiktoken
-import pickle
 import gzip
 import os
+import pickle
+
 import boto3
-import numpy as np 
 import faiss
+import numpy as np
+import tiktoken
+from langchain_core.documents import Document
+from langchain_openai import OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 DELAY = 0.05 # delay to not Ddos the server
 MAX_TOKENS_PER_REQUEST = 260000
@@ -33,7 +34,7 @@ class Vectorizer:
                         Key=f"{self.folder.split('/')[2]}/embeddings/{filename}"
                     )
             print("\033[KSynced")
-        except Exception as e:
+        except Exception:
             print("\033[KFailed to upload embeddings to AWS bucket")
 
     def create_embeddings_with_checkpoint(self):
@@ -91,8 +92,8 @@ class Vectorizer:
             index = faiss.IndexFlatL2(dimension)
             index.add(embeddings_array)
             faiss.write_index(index, f"{self.checkpoint_dir}/faisschunk_{i//chunk_size}.index")
-            with open(f"{self.checkpoint_dir}/textbatches_{i//chunk_size}.pkl", "wb") as f:
-                pickle.dump(textbatches_chunk, f)
+            with open(f"{self.checkpoint_dir}/textbatches_{i//chunk_size}.pkl", "wb") as out_f:
+                pickle.dump(textbatches_chunk, out_f)
             print(f'Created vector index and batch text file for chunks {i}-{i//chunk_size}')
     
     def _prepare_articles_in_doc_batches_for_embeddings(self) -> list[list[Document]]:
@@ -126,7 +127,7 @@ class Vectorizer:
         """Group all documents in subbatches inferior to OpenAI's token limit"""
         encoding = tiktoken.encoding_for_model(MODEL)
         batches: list[list[Document]] = []
-        current_batch = []
+        current_batch: list[Document] = []
         current_token_count = 0
         for doc in documents:
             text_tokens = len(encoding.encode(doc.page_content))

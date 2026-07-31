@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-IP_THROTTLER = {}
+IP_THROTTLER: dict[str, list[datetime]] = {}
 MIN_WAITING_TIME = timedelta(seconds=3)
 MAX_REQ_PER_MIN = 2
 MAX_REQ_PER_DAY = 10
@@ -17,7 +18,7 @@ class IPThrottleMiddleware:
             return
 
         request = Request(scope, receive)
-        ip = request.client.host
+        ip = request.client.host if request.client else "unknown"
         now = datetime.utcnow()
         
         if request.method == "OPTIONS":
