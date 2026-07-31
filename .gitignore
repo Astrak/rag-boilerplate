@@ -5,3 +5,9 @@ nohup.out
 url-list.csv
 knowledge-sources
 src/playground
+.claude
+CLAUDE.md
+.env
+.env.telegram
+.env.x
+TODO.md
