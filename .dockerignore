@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.claude/
+knowledge-sources/
+data/
+nohup.out
+*.egg-info/
+.env
+.env.*

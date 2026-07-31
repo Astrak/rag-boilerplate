@@ -1,0 +1,4 @@
+api.polem-ia.com {
+	tls /etc/letsencrypt/live/api.polem-ia.com/fullchain.pem /etc/letsencrypt/live/api.polem-ia.com/privkey.pem
+	reverse_proxy api:8000
+}
