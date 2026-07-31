@@ -67,6 +67,27 @@ curl -X POST \
 http://localhost:8000/analyze
 ```
 
+## Production deployment (Docker)
+
+In production the `api` app runs via Docker Compose (`docker-compose.yml`),
+behind a Caddy reverse proxy that terminates TLS, with secrets pulled from
+AWS SSM Parameter Store at boot instead of a `.env` file on disk — see
+[`deploy/README.md`](deploy/README.md) for the full one-time setup
+(IAM role, SSM parameters, systemd unit).
+
+To deploy a code update once that's set up:
+
+```bash
+cd ~/rag-boilerplate
+git pull
+sudo docker compose build api
+sudo docker compose up -d --remove-orphans
+```
+
+`docker compose up -d` alone does not rebuild the image — `docker compose
+build` is the step that picks up new code. See
+[`deploy/README.md`](deploy/README.md#deploying-a-code-update) for details.
+
 ## Building the knowledge base
 
 The scraper is not entirely automatized so one can vet if the data is correctly picked from the targeted website.

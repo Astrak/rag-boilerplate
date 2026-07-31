@@ -70,6 +70,21 @@ rebuild) never loses secrets — AWS is the only source of truth.
    sudo systemctl enable --now rag-boilerplate.service
    ```
 
+   **Why systemd and not just Docker's `restart: unless-stopped`?** Those are
+   two different jobs. Docker's own restart policy already handles crash
+   recovery and "come back after the daemon restarts" fine on its own — no
+   systemd needed for that. What Docker *can't* do is run something before
+   `docker compose up` creates the containers: `env_file` is only read at
+   container-creation time, not on every restart, so `fetch-env.sh` has to
+   regenerate `.env` first, or the containers get created with a stale/missing
+   `.env`. That ordering (`ExecStartPre` runs the fetch, then `ExecStart` runs
+   compose) is exactly what systemd is for. It's also what lets a from-scratch
+   instance (new EC2, lost disk, fresh AMI) self-bootstrap with a single
+   `enable --now` instead of a manual step. Wrapping `docker compose up` in a
+   systemd unit purely to sequence a pre-step like this is standard practice
+   for single-host Compose deployments that don't have an orchestrator
+   (k8s/ECS) doing it for them.
+
 4. **Retire the old bare-metal launch.** If the previous
    `nohup uvicorn ... --ssl-keyfile ... --port 443` process is still running,
    stop it (`sudo pkill -f "uvicorn apps.api.main"`) — TLS termination and
@@ -84,3 +99,30 @@ rebuild) never loses secrets — AWS is the only source of truth.
   `deploy/fetch-env.sh && docker compose up -d` by hand) to pick it up.
 - `.env` on disk is now a generated artifact, not something to back up —
   it's already gitignored and gets rebuilt from SSM on every boot.
+
+### Deploying a code update
+
+```bash
+cd ~/rag-boilerplate
+git pull
+sudo docker compose build api
+sudo docker compose up -d --remove-orphans
+```
+
+`docker compose up -d` on its own does **not** rebuild the image — that's
+what `docker compose build` is for. Once the image is rebuilt, `up -d`
+notices it changed and recreates just the `api` container; `caddy` is left
+alone unless you edited the `Caddyfile` too (in which case
+`sudo docker compose up -d caddy` picks that up the same way).
+
+Restarting the whole `rag-boilerplate.service` unit re-runs `fetch-env.sh`
+and `docker compose up -d`, but it does **not** rebuild the image either — use
+the `git pull` + `docker compose build` steps above for actual code changes,
+not just a service restart.
+
+Each rebuild leaves the previous image behind as a dangling layer, which
+adds up fast on a small instance disk — clean up occasionally with:
+
+```bash
+sudo docker image prune -f
+```
