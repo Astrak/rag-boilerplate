@@ -18,7 +18,11 @@ class IPThrottleMiddleware:
             return
 
         request = Request(scope, receive)
-        ip = request.client.host if request.client else "unknown"
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            ip = forwarded_for.split(",")[-1].strip()
+        else:
+            ip = request.client.host if request.client else "unknown"
         now = datetime.utcnow()
         
         if request.method == "OPTIONS":
