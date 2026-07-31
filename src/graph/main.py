@@ -77,7 +77,7 @@ class Graph:
         context: list[str] = []
         resources: list[Resource] = []
         for doc in state['context']:
-            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         str_context = "\n\n".join(context[:CONTEXT_CULL]) # Cull input to a maximum amount of context elements
         messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})

@@ -129,7 +129,7 @@ def retrieve(request: SearchRequest) -> dict[str, list[Resource]]:
     result = graph.retrieve({'question': request.question, 'discussion': ''}) 
     resources: list[Resource] = []
     for doc in result['context']:
-        resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+        resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
     print(f'\033[93mRETRIEVE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     return {"resources": resources}
 
@@ -186,7 +186,7 @@ async def stream_analyze(request: SearchRequest) -> StreamingResponse:
                     if event["data"].get('input') and event['data']['input'].get('context'):
                         print('SENDING RESOURCES')
                         for doc in event["data"]["input"]['context']:
-                            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
+                            resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
                         yield f"data: {json.dumps({ "type": "resources", "resources": resources })}\n\n"
                     else:
                         print("ERROR input not found")

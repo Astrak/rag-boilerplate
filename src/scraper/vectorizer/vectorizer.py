@@ -112,7 +112,7 @@ class Vectorizer:
                     page_content=chunk,
                     metadata={
                         'source': article.get('url'),
-                        'title': article.get('title'),
+                        'title': article.get('title') or '',
                         'date': article.get('date'),
                         'author': article.get('author'),
                         'chunk_id': i,

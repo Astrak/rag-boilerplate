@@ -25,7 +25,7 @@ class IPThrottleMiddleware:
             ip = request.client.host if request.client else "unknown"
         now = datetime.utcnow()
         
-        if request.method == "OPTIONS":
+        if request.method == "OPTIONS" or request.url.path == "/":
             await self.app(scope, receive, send)
             return
 
