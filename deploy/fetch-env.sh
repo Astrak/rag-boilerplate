@@ -8,7 +8,7 @@
 set -euo pipefail
 
 SSM_PATH="${SSM_PATH:-/rag-boilerplate/prod}"
-AWS_REGION="${AWS_REGION:-eu-north-1}"
+AWS_REGION="${AWS_REGION:-eu-west-3}"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_FILE="$REPO_DIR/.env"
 

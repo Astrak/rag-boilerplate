@@ -10,14 +10,19 @@ rebuild) never loses secrets — AWS is the only source of truth.
 
 1. **Store each value** (replace `<value>` — do this once per key):
 
+   The SSM parameters themselves live in whatever region your EC2 instance
+   runs in (`eu-west-3` here) — that's independent of `BUCKET_REGION`'s
+   *value*, which is the S3 bucket's own region (`eu-north-1`) and is only
+   ever read by the app's boto3 client, not by SSM.
+
    ```bash
-   aws ssm put-parameter --name /rag-boilerplate/prod/OPENAI_API_KEY   --type SecureString --value '<value>' --region eu-north-1
-   aws ssm put-parameter --name /rag-boilerplate/prod/LANGSMITH_API_KEY --type SecureString --value '<value>' --region eu-north-1
-   aws ssm put-parameter --name /rag-boilerplate/prod/GOOGLE_API_KEY   --type SecureString --value '<value>' --region eu-north-1
-   aws ssm put-parameter --name /rag-boilerplate/prod/XAI_API_KEY      --type SecureString --value '<value>' --region eu-north-1
-   aws ssm put-parameter --name /rag-boilerplate/prod/BUCKET           --type SecureString --value 'rag-faiss-indext' --region eu-north-1
-   aws ssm put-parameter --name /rag-boilerplate/prod/BUCKET_REGION    --type SecureString --value 'eu-north-1' --region eu-north-1
-   aws ssm put-parameter --name /rag-boilerplate/prod/SOURCES          --type SecureString --value '<comma-separated sources>' --region eu-north-1
+   aws ssm put-parameter --name /rag-boilerplate/prod/OPENAI_API_KEY   --type SecureString --value '<value>' --region eu-west-3
+   aws ssm put-parameter --name /rag-boilerplate/prod/LANGSMITH_API_KEY --type SecureString --value '<value>' --region eu-west-3
+   aws ssm put-parameter --name /rag-boilerplate/prod/GOOGLE_API_KEY   --type SecureString --value '<value>' --region eu-west-3
+   aws ssm put-parameter --name /rag-boilerplate/prod/XAI_API_KEY      --type SecureString --value '<value>' --region eu-west-3
+   aws ssm put-parameter --name /rag-boilerplate/prod/BUCKET           --type SecureString --value 'rag-faiss-indext' --region eu-west-3
+   aws ssm put-parameter --name /rag-boilerplate/prod/BUCKET_REGION    --type SecureString --value 'eu-north-1' --region eu-west-3
+   aws ssm put-parameter --name /rag-boilerplate/prod/SOURCES          --type SecureString --value '<comma-separated sources>' --region eu-west-3
    ```
 
 2. **Attach an IAM role to the EC2 instance** (Instance Settings → Attach/Replace
@@ -31,16 +36,25 @@ rebuild) never loses secrets — AWS is the only source of truth.
        {
          "Effect": "Allow",
          "Action": "ssm:GetParametersByPath",
-         "Resource": "arn:aws:ssm:eu-north-1:<account-id>:parameter/rag-boilerplate/prod/*"
+         "Resource": [
+           "arn:aws:ssm:eu-west-3:<account-id>:parameter/rag-boilerplate/prod",
+           "arn:aws:ssm:eu-west-3:<account-id>:parameter/rag-boilerplate/prod/*"
+         ]
        },
        {
          "Effect": "Allow",
          "Action": "kms:Decrypt",
-         "Resource": "arn:aws:kms:eu-north-1:<account-id>:alias/aws/ssm"
+         "Resource": "arn:aws:kms:eu-west-3:<account-id>:alias/aws/ssm"
        }
      ]
    }
    ```
+
+   Note the first `Resource` entry has no trailing `/*` — `GetParametersByPath`
+   checks permissions against the path exactly as passed (no trailing
+   slash/wildcard), which is a different string than the `/*` prefix pattern.
+   Omitting it produces `AccessDeniedException` even though the wildcard entry
+   looks like it should cover it.
 
    With this role attached, the instance no longer needs
    `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` anywhere — the AWS CLI and
