@@ -32,6 +32,8 @@ class Resource(TypedDict):
 class State(TypedDict):
     question: str
     discussion: NotRequired[str]
+    folders: NotRequired[list[str]]
+    prompt: NotRequired[PromptTemplate]
     context: NotRequired[list[Document]]
     answer: NotRequired[str]
     resources: NotRequired[list[Resource]]
@@ -70,7 +72,8 @@ class Graph:
         response = openai.embeddings.create(input=state["question"],model=MODEL)
         question_embeddings = response.data[0].embedding
         print('\033[94mGRAPH: Retrieve: Successfully generated embeddings for question')
-        matching_documents = self.search_embeddings(question_embeddings)
+        folders = state.get("folders", self.folders)
+        matching_documents = self.search_embeddings(question_embeddings, folders)
         return {"context": matching_documents}
 
     async def generate(self, state: State) -> dict[str, Any]:
@@ -80,7 +83,8 @@ class Graph:
             resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
             context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
         str_context = "\n\n".join(context[:CONTEXT_CULL]) # Cull input to a maximum amount of context elements
-        messages = self.prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
+        prompt = state.get("prompt", self.prompt)
+        messages = prompt.invoke({"question": state["question"], "context": str_context, "discussion": state["discussion"]})
         start_time = time.time()
         response = await self.llm.ainvoke(messages)
         input_text = messages.to_string()
@@ -129,13 +133,13 @@ class Graph:
     #             async for delta in update["generate"]:
     #                 yield delta
 
-    def search_embeddings(self, query_embedding: list[float]) -> list[Document]:
+    def search_embeddings(self, query_embedding: list[float], folders: list[str]) -> list[Document]:
         all_results: list[tuple[float, Document]] = []
         start_time = time.perf_counter()
         results_per_chunk = 4
         quotes: list[tuple[float, Document]] = []
         if not self.preloaded_indices:
-            for folder in self.folders:
+            for folder in folders:
                 folder_start_time = time.perf_counter()
                 embeddings_folder = f"./knowledge-sources/{folder}/embeddings/"
                 embeddings_chunks = [f for f in os.listdir(embeddings_folder) if f.startswith('faisschunk_') and f.endswith('.index')]
@@ -151,7 +155,7 @@ class Graph:
                             all_results.append((score, chunk_texts[idx]))
                 print(f'\033[94mGRAPH: Embeddings: {folder}: {((time.perf_counter() - folder_start_time) * 1_000):.0f}ms')
         else:
-            filtered_indices = [f for f in self.preloaded_indices if any(f.split('/')[2] in folder for folder in self.folders)]
+            filtered_indices = [f for f in self.preloaded_indices if any(f.split('/')[2] in folder for folder in folders)]
             for file in filtered_indices:
                 scores, indices = self.preloaded_indices[file].search(np.array([query_embedding]), results_per_chunk)
                 for score, idx in zip(scores[0], indices[0]):
@@ -172,8 +176,18 @@ class Graph:
         print(f'\033[94mGRAPH: Embeddings: Found {len(context)} matching documents in {((time.perf_counter() - start_time) * 1_000):.0f}ms')
         return context
     
-    async def ainvoke(self, question: str, discussion: str = "") -> dict[str, Any]:
-        return await self.graph.ainvoke({"question": question, "discussion": discussion})
+    async def ainvoke(self, question: str, discussion: str = "", folders: list[str] | None = None, prompt: PromptTemplate | None = None) -> dict[str, Any]:
+        initial_state: State = {"question": question, "discussion": discussion}
+        if folders is not None:
+            initial_state["folders"] = folders
+        if prompt is not None:
+            initial_state["prompt"] = prompt
+        return await self.graph.ainvoke(initial_state)
 
-    def astream_events(self, question: str, discussion: str = "") -> AsyncIterator[StreamEvent]:
-        return self.graph.astream_events({"question": question, "discussion": discussion})
+    def astream_events(self, question: str, discussion: str = "", folders: list[str] | None = None, prompt: PromptTemplate | None = None) -> AsyncIterator[StreamEvent]:
+        initial_state: State = {"question": question, "discussion": discussion}
+        if folders is not None:
+            initial_state["folders"] = folders
+        if prompt is not None:
+            initial_state["prompt"] = prompt
+        return self.graph.astream_events(initial_state)

@@ -123,10 +123,11 @@ def retrieve(request: SearchRequest) -> dict[str, list[Resource]]:
     start_time = time.time()
     print('\033[93mRETRIEVE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('RETRIEVE: Question is: ' + request.question)
-    sources = ",".join([f"./{src}/" for src in request.sources])
-    print('RETRIEVE: Sources are: ' + ", ".join(request.sources))
-    graph.folders = sources.split(',')
-    result = graph.retrieve({'question': request.question, 'discussion': ''}) 
+    request_sources = request.sources or sources
+    joined_sources = ",".join([f"./{src}/" for src in request_sources])
+    print('RETRIEVE: Sources are: ' + ", ".join(request_sources))
+    parsed_folders = joined_sources.split(',')
+    result = graph.retrieve({'question': request.question, 'discussion': '', 'folders': parsed_folders})
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
@@ -138,17 +139,17 @@ async def analyze(request: SearchRequest) -> dict[str, Any]:
     start_time = time.time()
     print('\033[93mANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('ANALYZE: Question is: ' + request.question)
-    print('ANALYZE: Sources are: ' + ", ".join(request.sources))
-    sources = ",".join([f"./{src}/" for src in request.sources])
+    request_sources = request.sources or sources
+    print('ANALYZE: Sources are: ' + ", ".join(request_sources))
+    joined_sources = ",".join([f"./{src}/" for src in request_sources])
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
-    graph.folders = sources.split(',')
-    cache_string = f"{request.question}&{AnswerSize(request.answerSize)}"
+    parsed_folders = joined_sources.split(',')
+    cache_string = f"{','.join(sorted(request_sources))}&{request.question}&{AnswerSize(request.answerSize)}"
     if cache_string in BASIC_CACHE:
         print('\033[93mANALYZE: Answered from cache')
         return BASIC_CACHE[cache_string]
-    graph.prompt = get_analyze_prompt(answer_size)
-    result = await graph.ainvoke(request.question) 
+    result = await graph.ainvoke(request.question, folders=parsed_folders, prompt=get_analyze_prompt(answer_size))
     print(f'\033[93mANALYZE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
     answer = {"results": result['answer'], "resources": result['resources'], "cost": result['cost'] }
     BASIC_CACHE[cache_string] = answer
@@ -159,13 +160,14 @@ async def stream_analyze(request: SearchRequest) -> StreamingResponse:
     start_time = time.time()
     print('\033[93mSTREAM-ANALYZE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('STREAM-ANALYZE: Question is: ' + request.question)
-    print('STREAM-ANALYZE: Sources are: ' + ", ".join(request.sources))
-    sources = ",".join([f"./{src}/" for src in request.sources])
+    request_sources = request.sources or sources
+    print('STREAM-ANALYZE: Sources are: ' + ", ".join(request_sources))
+    joined_sources = ",".join([f"./{src}/" for src in request_sources])
     answer_size = 160 + (int(request.answerSize) - 1) * 150
     print(f'STREAM-ANALYZE: Answer size requested is: {AnswerSize(request.answerSize)}')
-    graph.folders = sources.split(',')
-    cache_string = f"{request.question}&{AnswerSize(request.answerSize)}"
-    graph.prompt = get_analyze_prompt(answer_size)
+    parsed_folders = joined_sources.split(',')
+    cache_string = f"{','.join(sorted(request_sources))}&{request.question}&{AnswerSize(request.answerSize)}"
+    analyze_prompt_for_request = get_analyze_prompt(answer_size)
     async def event_generator() -> AsyncGenerator[str, None]:
 
         if cache_string in BASIC_CACHE:
@@ -180,7 +182,7 @@ async def stream_analyze(request: SearchRequest) -> StreamingResponse:
         resources: list[Resource] = []
         cost = ""
         try:            
-            async for event in graph.astream_events(request.question):
+            async for event in graph.astream_events(request.question, folders=parsed_folders, prompt=analyze_prompt_for_request):
                 kind = event["event"]
                 if kind == "on_chain_start":
                     if event["data"].get('input') and event['data']['input'].get('context'):

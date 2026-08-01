@@ -13,5 +13,6 @@ CLAUDE.md
 TODO.md
 IMPROVEMENTS.md
 ARCHITECTURE.md
+OPTIMIZE.md
 .mypy_cache
 .ruff_cache
