@@ -1,5 +1,5 @@
 [Unit]
-Description=RAG boilerplate (fetch secrets from SSM, then docker compose up)
+Description=RAG boilerplate (docker compose up)
 After=network-online.target docker.service
 Wants=network-online.target
 Requires=docker.service
@@ -7,8 +7,7 @@ Requires=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/ec2-user/rag-boilerplate
-ExecStartPre=/home/ec2-user/rag-boilerplate/deploy/fetch-env.sh
+WorkingDirectory=/home/ubuntu/rag-boilerplate
 ExecStart=/usr/bin/docker compose up -d --remove-orphans
 ExecStop=/usr/bin/docker compose down
 

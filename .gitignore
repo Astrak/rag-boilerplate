@@ -14,5 +14,9 @@ TODO.md
 IMPROVEMENTS.md
 ARCHITECTURE.md
 OPTIMIZE.md
+SELF_LLM.md
 .mypy_cache
 .ruff_cache
+deploy/hetzner/.terraform
+deploy/hetzner/terraform.tfstate
+deploy/hetzner/terraform.tfstate.backup

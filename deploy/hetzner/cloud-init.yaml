@@ -1,0 +1,45 @@
+#cloud-config
+# First-boot bootstrap for the Hetzner rag-boilerplate box. Installs the
+# packages that used to be pre-baked or manually installed on the AWS AMI
+# (Docker, the docker-compose-plugin, and certbot for TLS certs) so the box
+# is ready for a manual `git clone` + first-run right after `terraform
+# apply`. Does not clone the repo, place secrets, or start anything —
+# those stay manual steps documented in deploy/README.md.
+package_update: true
+package_upgrade: true
+
+# variables.tf defaults allowed_ssh_cidrs to 0.0.0.0/0 (no fixed IP to
+# scope the firewall to -- box is administered from a dynamic mobile IP).
+# That relies on port 22 being key-only and rate-limited instead of
+# IP-restricted: make password auth explicitly off (Ubuntu's cloud image
+# already defaults to this, but don't depend on that silently holding) and
+# get fail2ban running before anything else.
+ssh_pwauth: false
+
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - certbot
+  - fail2ban
+
+runcmd:
+  # fail2ban's default jail already covers sshd; just make sure it's
+  # running so an IP-unrestricted port 22 isn't also an unthrottled one.
+  - systemctl enable --now fail2ban
+
+  # Docker's official apt repo, for docker-compose-plugin (`docker compose`,
+  # the v2 CLI this repo's scripts/systemd unit use) — Ubuntu's own
+  # docker.io package doesn't ship it.
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - >-
+    echo "deb [arch=$(dpkg --print-architecture)
+    signed-by=/etc/apt/keyrings/docker.asc]
+    https://download.docker.com/linux/ubuntu
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  - systemctl enable --now docker
