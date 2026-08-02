@@ -20,3 +20,5 @@ SELF_LLM.md
 deploy/hetzner/.terraform
 deploy/hetzner/terraform.tfstate
 deploy/hetzner/terraform.tfstate.backup
+scripts/.aws-sync.env
+scripts/.sync-state
