@@ -5,7 +5,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/ubuntu/rag-boilerplate
+WorkingDirectory=/root/rag-boilerplate
 # certbot's standalone plugin briefly needs port 80 free for the ACME
 # challenge; nothing in docker-compose.yml publishes it, so no container
 # stop/start is needed around this. --deploy-hook only fires when a cert
