@@ -16,6 +16,7 @@ from apps.api.analyze_prompt import get_analyze_prompt
 from apps.api.env import fill_env
 from apps.api.ip_throttler_middleware import IPThrottleMiddleware
 from graph.main import Graph
+from graph.pricing import CostBreakdown, embedding_only_breakdown
 
 fill_env()
 
@@ -119,7 +120,7 @@ class Resource(TypedDict):
 BASIC_CACHE: dict[str, dict[str, Any]] = {}
 
 @app.post("/retrieve")
-def retrieve(request: SearchRequest) -> dict[str, list[Resource]]:
+def retrieve(request: SearchRequest) -> dict[str, Any]:
     start_time = time.time()
     print('\033[93mRETRIEVE: Request received at: ' + str(datetime.fromtimestamp(start_time)))
     print('RETRIEVE: Question is: ' + request.question)
@@ -131,8 +132,9 @@ def retrieve(request: SearchRequest) -> dict[str, list[Resource]]:
     resources: list[Resource] = []
     for doc in result['context']:
         resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title'] or ''})
-    print(f'\033[93mRETRIEVE: Answered in {((time.time() - start_time) * 1_000):.0f}ms')
-    return {"resources": resources}
+    cost = embedding_only_breakdown(result['embedding_cost'])
+    print(f'\033[93mRETRIEVE: Answered in {((time.time() - start_time) * 1_000):.0f}ms, estimated cost ${cost["total_cost"]:.6f}')
+    return {"resources": resources, "cost": cost}
 
 @app.post("/analyze")
 async def analyze(request: SearchRequest) -> dict[str, Any]:
@@ -180,8 +182,8 @@ async def stream_analyze(request: SearchRequest) -> StreamingResponse:
           
         text = ""
         resources: list[Resource] = []
-        cost = ""
-        try:            
+        cost: CostBreakdown | None = None
+        try:
             async for event in graph.astream_events(request.question, folders=parsed_folders, prompt=analyze_prompt_for_request):
                 kind = event["event"]
                 if kind == "on_chain_start":
@@ -196,9 +198,12 @@ async def stream_analyze(request: SearchRequest) -> StreamingResponse:
                     if content:
                         yield f"data: {json.dumps({ "type": "token", "data": content })}\n\n"
                 if kind == "on_chain_end":
-                    if event['data'].get('output') and event['data']['output'].get('cost'):
+                    # `is not None` (rather than a truthiness check) matters here:
+                    # a real cost dict is always truthy, but this guards against a
+                    # future/never-happened $0 estimate silently getting dropped.
+                    if event['data'].get('output') and event['data']['output'].get('cost') is not None:
                         cost = event['data']['output']['cost']
-                        yield f"data: {json.dumps({ "type": "cost", "cost": event['data']['output']['cost'] })}\n\n"
+                        yield f"data: {json.dumps({ "type": "cost", "cost": cost })}\n\n"
             yield f"data: {json.dumps({"type": "done"})}\n\n"
         finally:
             answer = {"results": text, "resources": resources, "cost": cost }

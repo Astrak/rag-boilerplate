@@ -14,16 +14,17 @@ from langchain_xai import ChatXAI
 from langgraph.graph import START, StateGraph
 from typing_extensions import TypedDict
 
+from graph.pricing import (
+    DEFAULT_EMBEDDING_MODEL,
+    CostBreakdown,
+    CostDetail,
+    chars_to_tokens_approx,
+    combine_costs,
+    estimate_chat_cost,
+    estimate_embedding_cost,
+)
 
-def gemini_tokens_approx(text: str) -> int:
-    return len(text) // 4 + 1 
-
-def gemini_cost_approx(input_text: str, output_text: str) -> float:
-    input_tokens  = gemini_tokens_approx(input_text)
-    output_tokens = gemini_tokens_approx(output_text)
-    input_rate  = 0.1
-    output_rate = 0.4
-    return (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
+CHAT_MODEL = "grok-3"
 
 class Resource(TypedDict):
     url: str
@@ -37,7 +38,8 @@ class State(TypedDict):
     context: NotRequired[list[Document]]
     answer: NotRequired[str]
     resources: NotRequired[list[Resource]]
-    cost: NotRequired[float]
+    embedding_cost: NotRequired[CostDetail]
+    cost: NotRequired[CostBreakdown]
 
 CONTEXT_CULL = 10
 
@@ -50,8 +52,9 @@ class Graph:
         graph = StateGraph(State).add_sequence([self.retrieve, self.generate])
         graph.add_edge(START, "retrieve")
         self.graph = graph.compile()
+        self.model_name = CHAT_MODEL
         self.llm = ChatXAI(
-            model="grok-3"
+            model=self.model_name
         )
 
     def preload_indices(self) -> None:
@@ -66,15 +69,23 @@ class Graph:
                     with open(file.replace(".index",'.pkl').replace('faisschunk','textbatches'), "rb") as ff:
                         self.preloaded_docs[file] = pickle.load(ff)
 
-    def retrieve(self, state: State) -> dict[str, list[Document]]:
+    def retrieve(self, state: State) -> dict[str, Any]:
         print(f'\033[94mGRAPH: Retrieve: Received question: {state["question"]}')
-        MODEL = "text-embedding-3-large"
+        MODEL = DEFAULT_EMBEDDING_MODEL
         response = openai.embeddings.create(input=state["question"],model=MODEL)
         question_embeddings = response.data[0].embedding
+        embedding_usage = getattr(response, "usage", None)
+        embedding_tokens = getattr(embedding_usage, "total_tokens", None)
+        if embedding_tokens is not None:
+            embedding_cost = estimate_embedding_cost(embedding_tokens, MODEL)
+        else:
+            # OpenAI's embeddings API normally reports usage; fall back to a
+            # char-based estimate if a response ever omits it.
+            embedding_cost = estimate_embedding_cost(chars_to_tokens_approx(state["question"]), MODEL, estimated=True)
         print('\033[94mGRAPH: Retrieve: Successfully generated embeddings for question')
         folders = state.get("folders", self.folders)
         matching_documents = self.search_embeddings(question_embeddings, folders)
-        return {"context": matching_documents}
+        return {"context": matching_documents, "embedding_cost": embedding_cost}
 
     async def generate(self, state: State) -> dict[str, Any]:
         context: list[str] = []
@@ -91,40 +102,25 @@ class Graph:
         print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
         output_text = cast(str, response.content)
         print(f"\033[94mGRAPH: Output text from LLM is {len(output_text)} characters long")
-        cost_estimation = gemini_cost_approx(input_text, output_text)
+        # Prefer the provider's own token accounting (response.usage_metadata)
+        # over the char-based approximation, which is only a fallback for
+        # responses/models that don't report usage.
+        usage = getattr(response, "usage_metadata", None)
+        if usage and usage.get("input_tokens") is not None and usage.get("output_tokens") is not None:
+            generation_cost = estimate_chat_cost(usage["input_tokens"], usage["output_tokens"], self.model_name)
+        else:
+            generation_cost = estimate_chat_cost(
+                chars_to_tokens_approx(input_text),
+                chars_to_tokens_approx(output_text),
+                self.model_name,
+                estimated=True,
+            )
+        cost = combine_costs(state["embedding_cost"], generation_cost)
         delay = time.time() - start_time
         print(f"\033[94mGRAPH: LLM answered in {delay}sec:")
         print(f"\033[94mGRAPH: Answer :\n{response.content}")
-        return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost_estimation }
-    
-        # start_time = time.time()
-        # context: list[str] = []
-        # resources: list[Resource] = []
-        # for doc in state['context']:
-        #     resources.append({'url': doc.metadata['source'], 'title': doc.metadata['title']})
-        #     context.append(f'{doc.page_content}\nAuteur: {doc.metadata["author"]}\nDate: {doc.metadata["date"]}\nSource: {doc.metadata["source"]}\nTitre: {doc.metadata["title"]}')
-        # yield { 'resources': resources }
-        # str_context = "\n\n".join(context)
-        # messages = self.prompt.invoke({"question": state["question"], "context": str_context})
-        # input_text = messages.to_string()
-        # print(f"\033[94mGRAPH: Full input text to LLM is {len(input_text)} characters long")
-        # full_answer = ""
-        # async for chunk in self.llm.astream(messages):
-        #     if chunk.content:
-        #         full_answer += chunk.content
-        #         print(chunk.content)
-        #         yield { 'answer': chunk.content}
-        # delay = time.time() - start_time
-        # print("\033[94mGRAPH: LLM answered in %ssec:" % delay)
-        # print(f"\033[94mGRAPH: Answer :\n{full_answer}")
-        # cost_estimation = gemini_cost_approx(input_text, full_answer)
-        # print(f"\033[94mGRAPH: Output text from LLM is {len(full_answer)} characters long")
-        # yield {
-        #     "answer": full_answer,
-        #     "cost": cost_estimation,
-        #     "resources": resources,
-        #     "__final__": True
-        # }
+        print(f"\033[94mGRAPH: Estimated cost: ${cost['total_cost']:.6f} (embedding=${cost['embedding']['total_cost']:.6f}, generation=${cost['generation']['total_cost']:.6f})")
+        return {'answer': response.content, 'context': context, 'resources': resources, 'cost': cost }
 
     # async def astream_invoke(self, question: str):
     #     initial_state = {"question": question}
